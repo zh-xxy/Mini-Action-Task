@@ -10,6 +10,8 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     companion object {
         const val ACTION_CREATE_TASK = "com.example.miniactiontask.CREATE_TASK"
+        const val ACTION_OPEN_RECOMMENDED = "com.example.miniactiontask.OPEN_RECOMMENDED"
+        const val ACTION_REFRESH_RECOMMENDED = "com.example.miniactiontask.REFRESH_RECOMMENDED"
     }
 
     private var shortcutChannel: MethodChannel? = null
@@ -42,8 +44,10 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.action == ACTION_CREATE_TASK) {
-            shortcutChannel?.invokeMethod("openNewTask", null)
+        when (intent.action) {
+            ACTION_CREATE_TASK -> shortcutChannel?.invokeMethod("openNewTask", null)
+            ACTION_OPEN_RECOMMENDED -> shortcutChannel?.invokeMethod("openRecommendedTasks", null)
+            ACTION_REFRESH_RECOMMENDED -> shortcutChannel?.invokeMethod("refreshRecommendation", null)
         }
     }
 }

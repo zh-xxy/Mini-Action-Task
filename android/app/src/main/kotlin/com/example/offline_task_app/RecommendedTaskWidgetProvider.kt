@@ -43,17 +43,40 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widgetTaskTitle, title)
             views.setTextViewText(R.id.widgetTaskAction, nextAction)
 
-            val launchIntent = Intent(context, MainActivity::class.java).apply {
+            val openRecommendedIntent = Intent(context, MainActivity::class.java).apply {
+                action = MainActivity.ACTION_OPEN_RECOMMENDED
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val openRecommendedPendingIntent = PendingIntent.getActivity(
+                context,
+                appWidgetId * 10 + 1,
+                openRecommendedIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val refreshIntent = Intent(context, MainActivity::class.java).apply {
+                action = MainActivity.ACTION_REFRESH_RECOMMENDED
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val refreshPendingIntent = PendingIntent.getActivity(
+                context,
+                appWidgetId * 10 + 2,
+                refreshIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val createTaskIntent = Intent(context, MainActivity::class.java).apply {
                 action = MainActivity.ACTION_CREATE_TASK
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
-            val pendingIntent = PendingIntent.getActivity(
+            val createTaskPendingIntent = PendingIntent.getActivity(
                 context,
-                appWidgetId,
-                launchIntent,
+                appWidgetId * 10 + 3,
+                createTaskIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widgetRoot, pendingIntent)
+            views.setOnClickPendingIntent(R.id.widgetRoot, openRecommendedPendingIntent)
+            views.setOnClickPendingIntent(R.id.widgetOpenRecommend, openRecommendedPendingIntent)
+            views.setOnClickPendingIntent(R.id.widgetRefresh, refreshPendingIntent)
+            views.setOnClickPendingIntent(R.id.widgetCreateTask, createTaskPendingIntent)
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }

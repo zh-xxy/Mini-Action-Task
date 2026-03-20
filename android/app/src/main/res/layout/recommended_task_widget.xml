@@ -34,4 +34,38 @@
         android:text="先打开应用获取推荐"
         android:textSize="13sp"
         android:textColor="#666666" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widgetOpenRecommend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="14dp"
+            android:text="查看推荐"
+            android:textColor="#1E88E5"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widgetRefresh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="14dp"
+            android:text="刷新"
+            android:textColor="#1E88E5"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widgetCreateTask"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="新建任务"
+            android:textColor="#1E88E5"
+            android:textSize="12sp" />
+    </LinearLayout>
 </LinearLayout>

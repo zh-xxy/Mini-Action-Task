@@ -99,7 +99,10 @@ class _ChartsScreenState extends State<ChartsScreen> {
   Widget _buildWeeklyBarChart() {
     final now = DateTime.now();
     List<BarChartGroupData> barGroups = [];
+    final energyByWeek = <double>[];
+    final lineSpots = <FlSpot>[];
     double maxY = 0;
+    double maxEnergy = 0;
     const barOrder = ['主线', '支线', '副本', '习惯', '日常'];
     final colors = <String, Color>{
       '主线': Colors.red,
@@ -116,15 +119,19 @@ class _ChartsScreenState extends State<ChartsScreen> {
       final weekEnd = now.subtract(Duration(days: i * 7));
 
       final counts = <String, int>{for (final k in barOrder) k: 0};
+      double weekEnergy = 0;
       for (var log in _logs) {
         if (log.action != 'done') continue;
         if (log.createdAt.isBefore(weekStart)) continue;
         if (!log.createdAt.isBefore(weekEnd)) continue;
+        weekEnergy += log.energyValue;
         final importance = importanceByTaskId[log.taskId];
         if (importance != null && counts.containsKey(importance)) {
           counts[importance] = (counts[importance] ?? 0) + 1;
         }
       }
+      energyByWeek.add(weekEnergy);
+      if (weekEnergy > maxEnergy) maxEnergy = weekEnergy;
       for (final k in barOrder) {
         final v = (counts[k] ?? 0).toDouble();
         if (v > maxY) maxY = v;
@@ -143,50 +150,92 @@ class _ChartsScreenState extends State<ChartsScreen> {
         }).toList(),
       ));
     }
+    final displayMaxY = maxY < 3 ? 3.0 : maxY + 1;
+    for (int i = 0; i < energyByWeek.length; i++) {
+      final weekEnergy = energyByWeek[i];
+      final mappedY = maxEnergy <= 0 ? 0.0 : (weekEnergy / maxEnergy) * displayMaxY;
+      lineSpots.add(FlSpot(i.toDouble(), mappedY));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 200,
-          child: BarChart(
-            BarChartData(
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      final index = value.toInt();
-                      if (index < 0 || index > 3) return const SizedBox.shrink();
-                      final weekStart = now.subtract(Duration(days: ((3 - index) * 7) + 7));
-                      return Text(_formatYearWeek(weekStart), style: const TextStyle(fontSize: 10));
-                    },
+          height: 220,
+          child: Stack(
+            children: [
+              BarChart(
+                BarChartData(
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index > 3) return const SizedBox.shrink();
+                          final weekStart = now.subtract(Duration(days: ((3 - index) * 7) + 7));
+                          return Text(_formatYearWeek(weekStart), style: const TextStyle(fontSize: 10));
+                        },
+                      ),
+                    ),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  barGroups: barGroups,
+                  maxY: displayMaxY,
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        const order = ['主线', '支线', '副本', '习惯', '日常'];
+                        final label = order[rodIndex];
+                        return BarTooltipItem('$label: ${rod.toY.toInt()}', const TextStyle(color: Colors.white));
+                      },
+                    ),
                   ),
                 ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
-              borderData: FlBorderData(show: false),
-              barGroups: barGroups,
-              maxY: maxY < 3 ? 3 : maxY + 1,
-              barTouchData: BarTouchData(
-                enabled: true,
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    const order = ['主线', '支线', '副本', '习惯', '日常'];
-                    final label = order[rodIndex];
-                    return BarTooltipItem('$label: ${rod.toY.toInt()}', const TextStyle(color: Colors.white));
-                  },
+              IgnorePointer(
+                child: LineChart(
+                  LineChartData(
+                    gridData: const FlGridData(show: false),
+                    titlesData: const FlTitlesData(
+                      bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    minX: 0,
+                    maxX: 3,
+                    minY: 0,
+                    maxY: displayMaxY,
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: lineSpots,
+                        isCurved: true,
+                        color: Colors.black87,
+                        barWidth: 2,
+                        dotData: FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, barData, index) =>
+                              FlDotCirclePainter(radius: 2.8, color: Colors.black87, strokeWidth: 0),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 10,
           runSpacing: 8,
-          children: barOrder.map((k) {
+          children: [
+            ...barOrder.map((k) {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -195,7 +244,147 @@ class _ChartsScreenState extends State<ChartsScreen> {
                   Text(k, style: const TextStyle(fontSize: 12)),
                 ],
               );
-            }).toList(),
+            }),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.show_chart, size: 14, color: Colors.black87),
+                SizedBox(width: 6),
+                Text('每周总完成能量', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEfficiencyHourChart() {
+    final doneTimes = <DateTime>[];
+    for (final task in _tasks) {
+      if (task.status == 'deleted') continue;
+      for (final item in task.actionHistory) {
+        final endedAt = item['endedAt']?.toString();
+        if (endedAt == null || endedAt.isEmpty) continue;
+        final dt = DateTime.tryParse(endedAt);
+        if (dt == null) continue;
+        doneTimes.add(dt.toLocal());
+      }
+    }
+    doneTimes.sort();
+    final countByHour = List<int>.filled(24, 0);
+    final densityByHour = List<double>.filled(24, 0);
+    DateTime? prev;
+    for (final t in doneTimes) {
+      final hour = t.hour;
+      countByHour[hour] += 1;
+      if (prev != null) {
+        final gap = t.difference(prev).inMinutes.abs();
+        if (gap <= 45) {
+          densityByHour[hour] += (46 - gap) / 46;
+        }
+      }
+      prev = t;
+    }
+    final bars = <BarChartGroupData>[];
+    final densitySpots = <FlSpot>[];
+    double maxCount = 1;
+    double maxDensity = 1;
+    for (int h = 0; h < 24; h++) {
+      final count = countByHour[h].toDouble();
+      final density = densityByHour[h];
+      if (count > maxCount) maxCount = count;
+      if (density > maxDensity) maxDensity = density;
+      bars.add(
+        BarChartGroupData(
+          x: h,
+          barRods: [
+            BarChartRodData(
+              toY: count,
+              color: Colors.indigo.shade300,
+              width: 7,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ],
+        ),
+      );
+    }
+    final displayMaxY = maxCount < 2 ? 2.0 : maxCount + 1;
+    for (int h = 0; h < 24; h++) {
+      final mappedY = maxDensity <= 0 ? 0.0 : (densityByHour[h] / maxDensity) * displayMaxY;
+      densitySpots.add(FlSpot(h.toDouble(), mappedY));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 220,
+          child: Stack(
+            children: [
+              BarChart(
+                BarChartData(
+                  minY: 0,
+                  maxY: displayMaxY,
+                  barGroups: bars,
+                  borderData: FlBorderData(show: false),
+                  gridData: FlGridData(show: true, horizontalInterval: 1, drawVerticalLine: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final h = value.toInt();
+                          if (h % 3 != 0) return const SizedBox.shrink();
+                          return Text('${h.toString().padLeft(2, '0')}时', style: const TextStyle(fontSize: 10));
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              IgnorePointer(
+                child: LineChart(
+                  LineChartData(
+                    minX: 0,
+                    maxX: 23,
+                    minY: 0,
+                    maxY: displayMaxY,
+                    borderData: FlBorderData(show: false),
+                    gridData: const FlGridData(show: false),
+                    titlesData: const FlTitlesData(
+                      bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: densitySpots,
+                        isCurved: true,
+                        color: Colors.deepOrange,
+                        barWidth: 2,
+                        dotData: const FlDotData(show: false),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Row(
+          children: [
+            Icon(Icons.bar_chart, size: 14, color: Colors.indigo),
+            SizedBox(width: 6),
+            Text('动作完成数量', style: TextStyle(fontSize: 12)),
+            SizedBox(width: 14),
+            Icon(Icons.show_chart, size: 14, color: Colors.deepOrange),
+            SizedBox(width: 6),
+            Text('连续完成密度', style: TextStyle(fontSize: 12)),
+          ],
         ),
       ],
     );
@@ -351,6 +540,11 @@ class _ChartsScreenState extends State<ChartsScreen> {
               const Text('完成动作热力图', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               _buildActionHeatmap(),
+              const SizedBox(height: 32),
+
+              const Text('高效率时段（完成时间与密度）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildEfficiencyHourChart(),
               const SizedBox(height: 32),
             ],
           ),

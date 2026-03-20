@@ -29,6 +29,12 @@ void main() async {
         MaterialPageRoute(builder: (context) => const TaskEditScreen()),
       );
     }
+    if (call.method == 'openRecommendedTasks' || call.method == 'refreshRecommendation') {
+      _appNavigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+        (route) => false,
+      );
+    }
   });
   
   runApp(const MyApp());
@@ -47,7 +53,7 @@ Future<void> _initDemoData() async {
       importance: '主线',
       dueInDays: 1,
       energyEstimate: 3.0,
-      nextAction: '收集本周数据',
+      nextAction: '整理本周完成事项\n补齐关键数据截图\n写出三条风险说明',
       priority: 5,
       urgency: 5,
       lowEnergyOk: false,
@@ -57,29 +63,50 @@ Future<void> _initDemoData() async {
     final task2 = Task(
       id: uuid.v4(),
       title: '清理电脑桌面',
-      status: 'todo',
+      status: 'in_progress',
       importance: '日常',
       dueInDays: 0,
       energyEstimate: 0.5,
-      nextAction: '把不需要的文件扔进回收站',
+      nextAction: '归档项目文档到资料夹\n清空下载目录临时文件\n整理截图并统一命名',
       priority: 2,
       urgency: 1,
       lowEnergyOk: true,
-      createdAt: DateTime.now(),
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      lastProgressAt: DateTime.now().subtract(const Duration(hours: 4)),
+      actionHistory: [
+        {
+          'action': '删除明显无用的安装包',
+          'startedAt': DateTime.now().subtract(const Duration(days: 1, hours: 6)).toIso8601String(),
+          'endedAt': DateTime.now().subtract(const Duration(days: 1, hours: 5)).toIso8601String(),
+        },
+        {
+          'action': '归档项目文档到资料夹',
+          'startedAt': DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
+          'endedAt': null,
+        }
+      ],
     );
 
     final task3 = Task(
       id: uuid.v4(),
       title: '喝一杯水，站起来活动一下',
-      status: 'todo',
+      status: 'in_progress',
       importance: '习惯',
       dueInDays: 0,
       energyEstimate: 0.1,
-      nextAction: '去接水',
+      nextAction: '先喝完一杯温水\n做两分钟肩颈拉伸\n原地走动三分钟',
       priority: 1,
       urgency: 2,
       lowEnergyOk: true,
-      createdAt: DateTime.now(),
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      lastProgressAt: DateTime.now().subtract(const Duration(minutes: 40)),
+      actionHistory: [
+        {
+          'action': '先喝完一杯温水',
+          'startedAt': DateTime.now().subtract(const Duration(minutes: 40)).toIso8601String(),
+          'endedAt': null,
+        }
+      ],
     );
 
     await dbService.insertTask(task1);

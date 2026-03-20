@@ -6,14 +6,16 @@ import 'package:mini_action_task/screens/tabs/profile_tab.dart';
 import 'task_edit_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   final List<Widget> _tabs = [
     const HomeTab(),
@@ -21,6 +23,12 @@ class _MainScreenState extends State<MainScreen> {
     const SummaryTab(),
     const ProfileTab(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   @override
   Widget build(BuildContext context) {

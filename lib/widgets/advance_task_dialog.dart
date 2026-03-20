@@ -65,7 +65,7 @@ Future<AdvanceDialogResult?> _showParseDialog({
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('批量解析下一步动作'),
+            title: const Text('编辑下一步动作'),
             content: SizedBox(
               width: 640,
               height: 500,
@@ -81,8 +81,7 @@ Future<AdvanceDialogResult?> _showParseDialog({
                       border: Border.all(color: Colors.blue.shade100),
                     ),
                     child: const Text(
-                      '1. 一行代表一个动作；2. 勾选表示本次已完成；\n'
-                      '3. 拖拽可调整顺序；4. “应用”后未勾选内容会保留为下一步动作。',
+                      '一行代表一个动作，勾选表示该动作已完成。',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.black87,

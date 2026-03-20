@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mini_action_task/services/db_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -14,6 +15,8 @@ class ProfileTab extends StatefulWidget {
 
 class _ProfileTabState extends State<ProfileTab> {
   final DBService _dbService = DBService();
+  static final Uri _projectUri = Uri.parse('https://github.com/zh-xxy/Mini-Action-Task');
+  static final Uri _releaseUri = Uri.parse('https://github.com/zh-xxy/Mini-Action-Task/releases');
   String _version = '1.0.3';
   String _name = 'User';
   String _signature = '点击编辑签名';
@@ -79,6 +82,43 @@ class _ProfileTabState extends State<ProfileTab> {
     if (level >= 12) return '🔥 稳定输出者';
     if (level >= 6) return '🚀 行动加速者';
     return '🌱 见习行动者';
+  }
+
+  List<String> _achievementLabels() {
+    final labels = <String>[];
+    labels.add('今日 +${_todayExp.toStringAsFixed(1)} EXP');
+    if (_todayExp >= 8) {
+      labels.add('🔥 今日爆发');
+    } else if (_todayExp >= 5) {
+      labels.add('⚡ 今日高能');
+    } else if (_todayExp > 0) {
+      labels.add('✅ 今日推进');
+    } else {
+      labels.add('🧭 保持推进');
+    }
+    if (_level >= 5) {
+      labels.add('🏅 五级达成');
+    } else {
+      labels.add('🎯 向五级冲刺');
+    }
+    if (_level >= 10) {
+      labels.add('🎯 十级成就');
+    } else {
+      labels.add('🚩 十级目标');
+    }
+    if (_level >= 15) {
+      labels.add('🌟 十五级里程碑');
+    } else {
+      labels.add('🪜 向十五级进发');
+    }
+    if (_totalExp >= 100) {
+      labels.add('🏆 百分经验达成');
+    } else if (_totalExp >= 30) {
+      labels.add('🌈 经验进阶中');
+    } else {
+      labels.add('🌱 新手起步');
+    }
+    return labels;
   }
 
   Future<void> _loadExperience() async {
@@ -306,6 +346,13 @@ class _ProfileTabState extends State<ProfileTab> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('自动冻结阈值已更新')));
   }
 
+  Future<void> _openUrl(Uri uri) async {
+    final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('链接打开失败')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -366,20 +413,9 @@ class _ProfileTabState extends State<ProfileTab> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 6,
-                      children: [
-                        Chip(
-                          label: Text('今日 +${_todayExp.toStringAsFixed(1)} EXP'),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        Chip(
-                          label: Text(_todayExp >= 5 ? '⚡ 今日高能' : '🧭 保持推进'),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        Chip(
-                          label: Text(_level >= 10 ? '🎯 十级成就' : '🎯 向十级冲刺'),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
+                      children: _achievementLabels()
+                          .map((label) => Chip(label: Text(label), visualDensity: VisualDensity.compact))
+                          .toList(),
                     ),
                   ],
                 ),
@@ -430,6 +466,18 @@ class _ProfileTabState extends State<ProfileTab> {
             leading: const Icon(Icons.info),
             title: const Text('App 版本'),
             subtitle: Text(_version),
+          ),
+          ListTile(
+            leading: const Icon(Icons.code),
+            title: const Text('项目地址'),
+            subtitle: const Text('https://github.com/zh-xxy/Mini-Action-Task'),
+            onTap: () => _openUrl(_projectUri),
+          ),
+          ListTile(
+            leading: const Icon(Icons.system_update_alt),
+            title: const Text('检查更新'),
+            subtitle: const Text('查看 GitHub Releases'),
+            onTap: () => _openUrl(_releaseUri),
           ),
           const SizedBox(height: 32),
         ],

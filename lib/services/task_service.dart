@@ -269,8 +269,12 @@ class TaskService {
     return score;
   }
 
-  List<Task> getRecommendedTasks(List<Task> tasks, List<LogEntry> recentLogs) {
-    final state = getEnergyState(recentLogs);
+  List<Task> getRecommendedTasks(
+    List<Task> tasks,
+    List<LogEntry> recentLogs, {
+    EnergyState? overrideState,
+  }) {
+    final state = overrideState ?? getEnergyState(recentLogs);
     
     List<Task> candidates = tasks.where((t) => t.status == 'in_progress').toList();
     List<Task> filtered = [];
