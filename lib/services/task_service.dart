@@ -39,14 +39,26 @@ class TaskService {
     }
     
     List<Map<String, dynamic>> history = List.from(task.actionHistory);
+    // 如果最后一个动作还没结束，且动作内容一致，则不新增，只保持进行中
     if (history.isNotEmpty && history.last['endedAt'] == null) {
-        history.last['endedAt'] = now.toIso8601String();
+        if (history.last['action'] == nextAction) {
+            // 内容一致，不操作
+        } else {
+            // 内容不一致，结束上一个，开启下一个
+            history.last['endedAt'] = now.toIso8601String();
+            history.add({
+              'action': nextAction,
+              'startedAt': now.toIso8601String(),
+              'endedAt': null,
+            });
+        }
+    } else {
+        history.add({
+          'action': nextAction,
+          'startedAt': now.toIso8601String(),
+          'endedAt': null,
+        });
     }
-    history.add({
-      'action': nextAction,
-      'startedAt': now.toIso8601String(),
-      'endedAt': null,
-    });
     task.actionHistory = history;
 
     await _dbService.updateTask(task);
@@ -80,51 +92,60 @@ class TaskService {
     }
 
     final history = task.actionHistory.map((e) => Map<String, dynamic>.from(e)).toList();
-    Map<String, dynamic>? openEntry;
-    if (history.isNotEmpty && history.last['endedAt'] == null) {
-      openEntry = Map<String, dynamic>.from(history.removeLast());
-    }
-
+    
+    // 1. 处理已勾选完成的动作
     if (completedActionsInOrder.isNotEmpty) {
       final cleaned = completedActionsInOrder.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-      if (cleaned.isNotEmpty) {
-        for (int i = 0; i < cleaned.length - 1; i++) {
-          history.add({
-            'action': cleaned[i],
-            'startedAt': nowIso,
-            'endedAt': nowIso,
-          });
-        }
-
-        final lastCompleted = cleaned.last;
-        if (openEntry != null) {
-          openEntry['action'] = lastCompleted;
-          openEntry['startedAt'] ??= nowIso;
-          openEntry['endedAt'] = nowIso;
-          history.add(openEntry);
-        } else {
-          history.add({
-            'action': lastCompleted,
-            'startedAt': nowIso,
-            'endedAt': nowIso,
-          });
-        }
-      } else if (openEntry != null) {
-        openEntry['endedAt'] = nowIso;
-        history.add(openEntry);
+      
+      // 如果当前有一个正在进行的动作，先处理它
+      Map<String, dynamic>? openEntry;
+      if (history.isNotEmpty && history.last['endedAt'] == null) {
+        openEntry = history.removeLast();
       }
-    } else if (openEntry != null) {
-      openEntry['endedAt'] = nowIso;
-      history.add(openEntry);
+
+      for (var actionName in cleaned) {
+        // 检查这个动作是否已经存在于历史中（防止重复添加）
+        bool alreadyExists = history.any((h) => h['action'] == actionName && h['endedAt'] != null);
+        if (!alreadyExists) {
+            history.add({
+              'action': actionName,
+              'startedAt': nowIso,
+              'endedAt': nowIso,
+            });
+        }
+      }
+      
+      // 如果之前的 openEntry 不在 cleaned 列表中，且名称不等于新的 nextAction，则关闭它
+      if (openEntry != null) {
+          if (!cleaned.contains(openEntry['action']) && openEntry['action'] != nextAction) {
+              openEntry['endedAt'] = nowIso;
+              history.add(openEntry);
+          }
+      }
+    } else {
+      // 没有勾选完成，仅关闭当前的 openEntry (如果存在且动作变了)
+      if (history.isNotEmpty && history.last['endedAt'] == null) {
+        if (history.last['action'] != nextAction) {
+          history.last['endedAt'] = nowIso;
+        }
+      }
     }
 
+    // 2. 开启新的进行中动作 (Next Action)
     if (nextAction.isNotEmpty) {
-      history.add({
-        'action': nextAction,
-        'startedAt': nowIso,
-        'endedAt': null,
-      });
+      // 检查最后一条是否已经是这个动作且在进行中
+      bool isRunning = history.isNotEmpty && 
+                        history.last['action'] == nextAction && 
+                        history.last['endedAt'] == null;
+      if (!isRunning) {
+        history.add({
+          'action': nextAction,
+          'startedAt': nowIso,
+          'endedAt': null,
+        });
+      }
     }
+
     task.actionHistory = history;
 
     await _dbService.updateTask(task);
