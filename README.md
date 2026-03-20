@@ -16,7 +16,7 @@ It combines task decomposition, energy-aware scheduling, and progress visualizat
 
 - **Task Lifecycle Management**: Organize tasks across selectable, in-progress, completed, frozen, and deleted states.
 - **Next-Action Decomposition**: Add multiple actionable next steps, one per line, to break complex work into executable units.
-- **Energy-Aware Planning**: Assign energy scores (0.0-5.0) and mark low-energy-friendly tasks for better daily matching.
+- **Energy-Aware Planning**: Assign energy scores and mark low-energy-friendly tasks for better daily matching.
 - **Smart Recommendation Card**: Get suggested tasks based on current context and recent task energy signals.
 - **Auto Freeze Protection**: Automatically freeze long-unfinished tasks to reduce backlog pressure.
 - **Activity Logging**: Track actions and updates for better personal review and continuity.
