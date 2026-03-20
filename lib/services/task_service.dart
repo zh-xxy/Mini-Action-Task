@@ -17,6 +17,15 @@ class TaskService {
     return '';
   }
 
+  String _formatEnergy(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    return text.replaceFirst(RegExp(r'\.$'), '');
+  }
+
   Future<void> advanceTask(Task task, String nextActionText) async {
     final now = DateTime.now();
     final trimmedText = nextActionText.trim();
@@ -150,7 +159,7 @@ class TaskService {
       taskId: task.id,
       action: 'done',
       energyValue: actualEnergy ?? task.energyEstimate,
-      note: actualEnergy != null ? '实际耗能: ${actualEnergy.toStringAsFixed(2)}' : '',
+      note: actualEnergy != null ? '实际耗能: ${_formatEnergy(actualEnergy)}' : '',
       createdAt: DateTime.now(),
     );
     await _dbService.insertLog(log);
@@ -269,12 +278,8 @@ class TaskService {
     return score;
   }
 
-  List<Task> getRecommendedTasks(
-    List<Task> tasks,
-    List<LogEntry> recentLogs, {
-    EnergyState? overrideState,
-  }) {
-    final state = overrideState ?? getEnergyState(recentLogs);
+  List<Task> getRecommendedTasks(List<Task> tasks, List<LogEntry> recentLogs) {
+    final state = getEnergyState(recentLogs);
     
     List<Task> candidates = tasks.where((t) => t.status == 'in_progress').toList();
     List<Task> filtered = [];

@@ -15,9 +15,8 @@ class ProfileTab extends StatefulWidget {
 
 class _ProfileTabState extends State<ProfileTab> {
   final DBService _dbService = DBService();
-  static final Uri _projectUri = Uri.parse('https://github.com/zh-xxy/Mini-Action-Task');
   static final Uri _releaseUri = Uri.parse('https://github.com/zh-xxy/Mini-Action-Task/releases');
-  String _version = '1.0.3';
+  String _version = '1.0.4';
   String _name = 'User';
   String _signature = '点击编辑签名';
   String _avatarPath = '';
@@ -58,7 +57,7 @@ class _ProfileTabState extends State<ProfileTab> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _version = '1.0.3';
+        _version = '1.0.4';
       });
     }
   }
@@ -84,7 +83,18 @@ class _ProfileTabState extends State<ProfileTab> {
     return '🌱 见习行动者';
   }
 
+  String _formatEnergy(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    return text.replaceFirst(RegExp(r'\.$'), '');
+  }
+
   List<String> _achievementLabels() {
+    final labels = <String>['今日 +${_formatEnergy(_todayExp)} EXP'];
+
     String levelProgress;
     if (_level < 5) {
       levelProgress = '🎯 向五级冲刺';
@@ -95,11 +105,10 @@ class _ProfileTabState extends State<ProfileTab> {
     } else {
       levelProgress = '🌟 里程碑';
     }
+    labels.add(levelProgress);
 
     String stateLabel;
-    if (_level < 5) {
-      stateLabel = '🌱 新手起步';
-    } else if (_todayExp >= 8) {
+    if (_todayExp >= 8) {
       stateLabel = '🔥 今日爆发';
     } else if (_todayExp >= 5) {
       stateLabel = '⚡ 今日高能';
@@ -108,8 +117,12 @@ class _ProfileTabState extends State<ProfileTab> {
     } else {
       stateLabel = '🧭 保持推进';
     }
+    labels.add(stateLabel);
+    if (_level < 5) {
+      labels.add('🌱 新手起步');
+    }
 
-    return [levelProgress, stateLabel];
+    return labels;
   }
 
   Future<void> _loadExperience() async {
@@ -386,7 +399,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Lv.$_level  $_levelTitle', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('总经验 ${_totalExp.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text('总经验 ${_formatEnergy(_totalExp)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -397,7 +410,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '距离下一等级还差 ${(_needExpForNext - _currentLevelExp).clamp(0, _needExpForNext).toStringAsFixed(1)} 经验',
+                      '距离下一等级还差 ${_formatEnergy((_needExpForNext - _currentLevelExp).clamp(0, _needExpForNext))} 经验',
                       style: const TextStyle(fontSize: 12, color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
@@ -457,12 +470,6 @@ class _ProfileTabState extends State<ProfileTab> {
             leading: const Icon(Icons.info),
             title: const Text('App 版本'),
             subtitle: Text(_version),
-          ),
-          ListTile(
-            leading: const Icon(Icons.code),
-            title: const Text('项目地址'),
-            subtitle: const Text('https://github.com/zh-xxy/Mini-Action-Task'),
-            onTap: () => _openUrl(_projectUri),
           ),
           ListTile(
             leading: const Icon(Icons.system_update_alt),

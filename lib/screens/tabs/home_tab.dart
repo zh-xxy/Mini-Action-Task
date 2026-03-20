@@ -25,11 +25,19 @@ class _HomeTabState extends State<HomeTab> {
   List<Task> _activeTasks = [];
   List<Task> _recommendedTasks = [];
   List<LogEntry> _recentLogs = [];
-  bool _forceLowEnergyMode = false;
   String _randomQuote = '';
   DateTime? _lastQuoteRefreshTime;
   static String _cachedQuote = '';
   static DateTime? _cachedQuoteRefreshTime;
+
+  String _formatEnergy(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    return text.replaceFirst(RegExp(r'\.$'), '');
+  }
 
   final List<String> _quotes = [
     "千里之行，始于足下。",
@@ -76,19 +84,12 @@ class _HomeTabState extends State<HomeTab> {
     await _taskService.autoFreezeOverdueTasks();
     final tasks = await _dbService.getActiveTasks();
     final logs = await _dbService.getRecentLogs(days: 3);
-    final forceLowEnergyMode = await _dbService.getForceLowEnergyMode();
-    final currentState = forceLowEnergyMode ? EnergyState.red : _taskService.getEnergyState(logs);
-    final recommended = _taskService.getRecommendedTasks(
-      tasks,
-      logs,
-      overrideState: currentState,
-    );
+    final recommended = _taskService.getRecommendedTasks(tasks, logs);
 
     setState(() {
       _activeTasks = tasks;
       _recentLogs = logs;
       _recommendedTasks = recommended;
-      _forceLowEnergyMode = forceLowEnergyMode;
     });
     await _syncRecommendedTaskWidget(recommended);
   }
@@ -109,7 +110,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   List<Task> _buildRecommendationPool() {
-    final state = _forceLowEnergyMode ? EnergyState.red : _taskService.getEnergyState(_recentLogs);
+    final state = _taskService.getEnergyState(_recentLogs);
     final candidates = _activeTasks
         .where((t) => t.status == 'in_progress')
         .toList();
@@ -126,16 +127,6 @@ class _HomeTabState extends State<HomeTab> {
     }
     filtered.sort((a, b) => _taskService.taskRankScore(b).compareTo(_taskService.taskRankScore(a)));
     return filtered;
-  }
-
-  Future<void> _toggleLowEnergyMode() async {
-    final next = !_forceLowEnergyMode;
-    await _dbService.saveForceLowEnergyMode(next);
-    await _loadData();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(next ? '已切换到低电量模式' : '已恢复自动判断模式')),
-    );
   }
 
   void _refreshRecommendedTasks() {
@@ -176,7 +167,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> _handleComplete(Task task) async {
-    final energyController = TextEditingController(text: task.energyEstimate.toStringAsFixed(2));
+    final energyController = TextEditingController(text: _formatEnergy(task.energyEstimate));
     final confirm = await showDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
@@ -217,8 +208,8 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final energyState = _forceLowEnergyMode ? EnergyState.red : _taskService.getEnergyState(_recentLogs);
-    final stateName = '${_taskService.getEnergyStateName(energyState)}${_forceLowEnergyMode ? '（手动）' : ''}';
+    final energyState = _taskService.getEnergyState(_recentLogs);
+    final stateName = _taskService.getEnergyStateName(energyState);
     final energyTotal = _taskService.getRecentEnergyTotal(_recentLogs);
 
     Color energyColor = Colors.green;
@@ -271,16 +262,7 @@ class _HomeTabState extends State<HomeTab> {
                   children: [
                     Text('能量状态: $stateName', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: energyColor)),
                     const SizedBox(height: 4),
-                    Text('最近3天消耗: ${energyTotal.toStringAsFixed(1)} (完成任务越多，状态越好)', style: const TextStyle(fontSize: 14, color: Colors.black54)),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: OutlinedButton.icon(
-                        onPressed: _toggleLowEnergyMode,
-                        icon: Icon(_forceLowEnergyMode ? Icons.bolt : Icons.bolt_outlined, size: 16),
-                        label: Text(_forceLowEnergyMode ? '恢复自动判断' : '今天状态差'),
-                      ),
-                    ),
+                    Text('最近3天消耗: ${_formatEnergy(energyTotal)} (完成任务越多，状态越好)', style: const TextStyle(fontSize: 14, color: Colors.black54)),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -295,10 +277,10 @@ class _HomeTabState extends State<HomeTab> {
                           Expanded(
                             child: Text(
                               energyState == EnergyState.red 
-                                ? '当前处于低电量模式，系统优先推荐耗能极低的预热任务。' 
+                                ? '当前处于低电量模式，系统优先推荐耗能较低的预热任务。' 
                                 : energyState == EnergyState.yellow
                                   ? '状态逐渐回暖，可以开始处理日常任务了。'
-                                  : '满电状态，趁热打铁，可以着手更有挑战性的任务了！',
+                                  : '趁热打铁，可以着手更有挑战性的任务了！',
                               style: TextStyle(fontSize: 12, color: energyColor.withOpacity(0.8)),
                             ),
                           ),

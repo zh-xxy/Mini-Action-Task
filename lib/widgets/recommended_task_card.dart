@@ -21,6 +21,15 @@ class RecommendedTaskCard extends StatelessWidget {
     return '';
   }
 
+  String _formatEnergy(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    return text.replaceFirst(RegExp(r'\.$'), '');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -81,7 +90,7 @@ class RecommendedTaskCard extends StatelessWidget {
               children: [
                 Text('天数: ${task.dueInDays}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                 const SizedBox(width: 16),
-                Text('能量: ${task.energyEstimate}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                Text('能量: ${_formatEnergy(task.energyEstimate)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
               ],
             ),
             const SizedBox(height: 12),

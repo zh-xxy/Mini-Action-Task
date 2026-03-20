@@ -30,6 +30,15 @@ class TaskCard extends StatelessWidget {
     }
   }
 
+  String _formatEnergy(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    return text.replaceFirst(RegExp(r'\.$'), '');
+  }
+
   @override
   Widget build(BuildContext context) {
     Color statusColor = Colors.grey;
@@ -102,7 +111,7 @@ class TaskCard extends StatelessWidget {
               children: [
                 Chip(label: Text(task.importance), visualDensity: VisualDensity.compact),
                 Chip(label: Text('剩 ${task.dueInDays} 天'), visualDensity: VisualDensity.compact),
-                Chip(label: Text('能量 ${task.energyEstimate}'), visualDensity: VisualDensity.compact),
+                Chip(label: Text('能量 ${_formatEnergy(task.energyEstimate)}'), visualDensity: VisualDensity.compact),
               ],
             ),
             const Divider(),

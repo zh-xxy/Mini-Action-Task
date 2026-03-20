@@ -203,7 +203,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   }
 
   Future<void> _handleComplete(Task task) async {
-    final energyController = TextEditingController(text: task.energyEstimate.toStringAsFixed(2));
+    final energyController = TextEditingController(text: _formatEnergy(task.energyEstimate));
     final confirm = await showDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
@@ -347,6 +347,15 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
+  String _formatEnergy(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    return text.replaceFirst(RegExp(r'\.$'), '');
+  }
+
   List<Widget> _buildActionDurations(Task task, {required bool completed}) {
     if (task.actionHistory.isEmpty) {
       return [const Text('动作时长: 暂无记录', style: TextStyle(color: Colors.black54))];
@@ -427,7 +436,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               Text('起始时间: ${_formatTime(start)}'),
               Text('结束时间: ${_formatTime(end)}'),
               Text('持续: $duration 天'),
-              Text('耗能: ${task.energyEstimate.toStringAsFixed(2)}'),
+              Text('耗能: ${_formatEnergy(task.energyEstimate)}'),
               const SizedBox(height: 8),
               ..._buildActionDurations(task, completed: true),
               const SizedBox(height: 8),

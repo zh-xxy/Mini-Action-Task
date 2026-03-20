@@ -372,24 +372,4 @@ class DBService {
     await file.writeAsString(safe.toString());
   }
 
-  Future<bool> getForceLowEnergyMode() async {
-    if (kIsWeb) return false;
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/force_low_energy_mode.txt');
-      if (!await file.exists()) return false;
-      final text = (await file.readAsString()).trim().toLowerCase();
-      return text == '1' || text == 'true';
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> saveForceLowEnergyMode(bool enabled) async {
-    if (kIsWeb) return;
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/force_low_energy_mode.txt');
-    await file.writeAsString(enabled ? '1' : '0');
-  }
-
 }
