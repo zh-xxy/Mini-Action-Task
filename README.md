@@ -1,42 +1,69 @@
 # Mini Action Task
 
-A Flutter-based task management application designed for offline use, focusing on energy management and task prioritization.
+[中文文档](./README.zh-CN.md)
 
-## Features
+Mini Action Task is an offline-first Flutter app that helps you move work forward with small, actionable steps.  
+It combines task decomposition, energy-aware scheduling, and progress visualization into one lightweight workflow.
 
-- **Task Management**: Create, view, and manage tasks with detailed attributes.
-- **Energy Estimation**: Assign energy values (0.0 - 5.0) to tasks to better plan your day based on your current capacity.
-- **Priority & Urgency**: Categorize tasks by importance (Mainline, Daily, Habit) and set priority levels.
-- **Next Action Tracking**: Keep track of the immediate next step for every task.
-- **Activity Logging**: Automatic logging of task creations and actions for progress tracking.
-- **Offline First**: All data is stored locally on the device using a local database.
+## Why This App
 
-## Technical Details
+- Reduce task-start friction with clear next actions.
+- Keep momentum even on low-energy days.
+- Balance long-term goals and daily execution.
+- Review your progress with simple visual analytics.
+
+## Core Features
+
+- **Task Lifecycle Management**: Organize tasks across selectable, in-progress, completed, frozen, and deleted states.
+- **Next-Action Decomposition**: Add multiple actionable next steps, one per line, to break complex work into executable units.
+- **Energy-Aware Planning**: Assign energy scores (0.0-5.0) and mark low-energy-friendly tasks for better daily matching.
+- **Smart Recommendation Card**: Get suggested tasks based on current context and recent task energy signals.
+- **Auto Freeze Protection**: Automatically freeze long-unfinished tasks to reduce backlog pressure.
+- **Activity Logging**: Track actions and updates for better personal review and continuity.
+- **Stats & Trends**: View completion trends and action heatmaps to understand execution rhythm.
+- **Personal Utilities**: Configure profile details, reminders, and data backup/import-export workflows.
+- **Offline First**: Store data locally on-device for reliable use without network dependency.
+
+## Task Model
+
+Each task can include:
+
+- **Importance**: Mainline, Daily, Habit
+- **Priority Level**: Relative urgency/importance for execution order
+- **Energy Estimate**: Required energy level for completion
+- **Low Energy OK**: Whether the task is suitable for low-capacity moments
+- **Due Window**: Remaining days before due date
+- **Next Actions**: Concrete executable steps that move the task forward
+
+## Tech Stack
 
 - **Framework**: [Flutter](https://flutter.dev/)
-- **State Management**: Uses modern Flutter practices.
-- **Database**: Local SQLite storage for persistence.
-- **Identifiers**: UUIDs for robust data handling.
+- **Persistence**: Local SQLite database
+- **Identifier Strategy**: UUID-based IDs
+- **Architecture**: Layered Flutter app with models, services, screens, and widgets
 
 ## Getting Started
 
 ### Prerequisites
 
-- Flutter SDK (latest stable version)
-- Android Studio / VS Code with Flutter extension
-- An Android/iOS emulator or physical device
+- Flutter SDK (latest stable)
+- Android Studio or VS Code with Flutter/Dart plugins
+- Android/iOS emulator or physical device
 
-### Installation
+### Run Locally
 
-1. Clone the repository.
-2. Run `flutter pub get` to install dependencies.
-3. Run `flutter run` to start the application.
+1. Clone this repository.
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Launch the app:
+   ```bash
+   flutter run
+   ```
 
-## Task Attributes
+## Suitable For
 
-Each task in the system includes:
-- **Importance**: Mainline (主线), Daily (日常), or Habit (习惯).
-- **Energy Estimate**: How much "mana" or energy the task requires.
-- **Low Energy OK**: Flag for tasks that can be done when tired.
-- **Due Date**: Days remaining until the deadline.
-- **Next Action**: The specific concrete step to move the task forward.
+- People who want to start tasks faster instead of over-planning.
+- Builders who prefer converting goals into concrete action lists.
+- Anyone improving personal execution with lightweight, offline tracking.
