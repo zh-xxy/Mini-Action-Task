@@ -156,7 +156,10 @@ class _ChartsScreenState extends State<ChartsScreen> {
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, meta) {
-                      return Text('前${3 - value.toInt()}周', style: const TextStyle(fontSize: 10));
+                      final index = value.toInt();
+                      if (index < 0 || index > 3) return const SizedBox.shrink();
+                      final weekStart = now.subtract(Duration(days: ((3 - index) * 7) + 7));
+                      return Text(_formatYearWeek(weekStart), style: const TextStyle(fontSize: 10));
                     },
                   ),
                 ),
@@ -207,7 +210,18 @@ class _ChartsScreenState extends State<ChartsScreen> {
     return Colors.green.shade800;
   }
 
-  Widget _buildActionHeatmap({int weeks = 54}) {
+  String _formatYearWeek(DateTime date) {
+    final target = DateTime(date.year, date.month, date.day);
+    final thursday = target.add(Duration(days: 4 - target.weekday));
+    final weekYear = thursday.year;
+    final firstThursday = DateTime(weekYear, 1, 4);
+    final firstWeekMonday = firstThursday.subtract(Duration(days: firstThursday.weekday - 1));
+    final currentWeekMonday = thursday.subtract(Duration(days: thursday.weekday - 1));
+    final week = (currentWeekMonday.difference(firstWeekMonday).inDays ~/ 7) + 1;
+    return '${weekYear}${week.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildActionHeatmap({int weeks = 20}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final weekdayIndex = today.weekday - DateTime.monday;
@@ -246,7 +260,10 @@ class _ChartsScreenState extends State<ChartsScreen> {
           GestureDetector(
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$key 完成动作 $count 个')),
+                SnackBar(
+                  content: Text('$key 完成动作 $count 个'),
+                  duration: const Duration(milliseconds: 1300),
+                ),
               );
             },
             child: Tooltip(

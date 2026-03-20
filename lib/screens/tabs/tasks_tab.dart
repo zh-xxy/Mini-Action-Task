@@ -24,7 +24,10 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   Map<String, List<Task>> _tasksByStatus = {};
   bool _isLoading = true;
   String? _doneImportanceFilter;
+  String? _doneTypeFilter;
   String? _deletedImportanceFilter;
+  int _donePage = 0;
+  static const int _donePageSize = 10;
 
   @override
   void initState() {
@@ -49,6 +52,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
+    await _taskService.autoFreezeOverdueTasks();
     final orderByMap = <String, String>{
       'todo': 'created_at DESC',
       'in_progress': '(priority * 10 + urgency) DESC, last_progress_at DESC, created_at DESC',
@@ -71,14 +75,97 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   }
 
   List<Task> _getFilteredTasks(String status) {
-    final list = _tasksByStatus[status] ?? [];
-    if (status == 'done' && _doneImportanceFilter != null) {
-      return list.where((t) => t.importance == _doneImportanceFilter).toList();
+    final list = List<Task>.from(_tasksByStatus[status] ?? []);
+    if (status == 'done') {
+      Iterable<Task> result = list;
+      if (_doneImportanceFilter != null) {
+        result = result.where((t) => t.importance == _doneImportanceFilter);
+      }
+      if (_doneTypeFilter != null) {
+        result = result.where((t) => t.type == _doneTypeFilter);
+      }
+      return result.toList();
     }
     if (status == 'deleted' && _deletedImportanceFilter != null) {
       return list.where((t) => t.importance == _deletedImportanceFilter).toList();
     }
     return list;
+  }
+
+  List<String> _getDoneTypeOptions() {
+    final types = _tasksByStatus['done']
+            ?.map((t) => t.type.trim())
+            .where((s) => s.isNotEmpty)
+            .toSet()
+            .toList() ??
+        [];
+    types.sort();
+    return types;
+  }
+
+  DateTime _getTaskStartTime(Task task) {
+    DateTime? earliest;
+    for (final item in task.actionHistory) {
+      final raw = item['startedAt']?.toString();
+      if (raw == null || raw.isEmpty) continue;
+      final dt = DateTime.tryParse(raw);
+      if (dt == null) continue;
+      if (earliest == null || dt.isBefore(earliest)) {
+        earliest = dt;
+      }
+    }
+    return earliest ?? task.lastProgressAt ?? task.createdAt;
+  }
+
+  Widget _buildDoneTab() {
+    final all = _getFilteredTasks('done');
+    if (all.isEmpty) {
+      return const Center(child: Text('列表为空'));
+    }
+    final totalPages = (all.length / _donePageSize).ceil();
+    final safePage = _donePage >= totalPages ? (totalPages - 1) : _donePage;
+    final start = safePage * _donePageSize;
+    final end = (start + _donePageSize) > all.length ? all.length : (start + _donePageSize);
+    final pageTasks = all.sublist(start, end);
+    final grouped = <String, List<Task>>{};
+    for (final task in pageTasks) {
+      final key = task.type.trim().isEmpty ? '未分类' : task.type.trim();
+      grouped.putIfAbsent(key, () => []).add(task);
+    }
+    final keys = grouped.keys.toList()..sort();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ...keys.expand((type) {
+          final list = grouped[type] ?? [];
+          return [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, top: 8),
+              child: Text('类型：$type（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ),
+            ...list.map((task) => _buildTaskItem(task, 'done')),
+          ];
+        }),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              onPressed: safePage > 0 ? () => setState(() => _donePage = safePage - 1) : null,
+              child: const Text('上一页'),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text('第 ${safePage + 1} / $totalPages 页'),
+            ),
+            TextButton(
+              onPressed: safePage < totalPages - 1 ? () => setState(() => _donePage = safePage + 1) : null,
+              child: const Text('下一页'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Future<void> _handleAdvance(Task task) async {
@@ -278,7 +365,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   Widget _buildTaskItem(Task task, String currentTabStatus) {
     if (currentTabStatus == 'in_progress') {
       final now = DateTime.now();
-      final durationDays = _formatDays(task.createdAt, now);
+      final durationDays = _formatDays(_getTaskStartTime(task), now);
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -309,7 +396,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
         ),
       );
     } else if (currentTabStatus == 'done') {
-      final start = task.createdAt;
+      final start = _getTaskStartTime(task);
       final end = task.lastDoneAt ?? DateTime.now();
       final duration = _formatDays(start, end);
       return Card(
@@ -398,12 +485,27 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
         actions: [
           if (currentStatus == 'done')
             PopupMenuButton<String>(
-              onSelected: (v) => setState(() => _doneImportanceFilter = v == '全部' ? null : v),
+              onSelected: (v) => setState(() {
+                _doneImportanceFilter = v == '全部' ? null : v;
+                _donePage = 0;
+              }),
               itemBuilder: (context) => [
                 const PopupMenuItem(value: '全部', child: Text('全部')),
                 ..._importanceOptions.map((e) => PopupMenuItem(value: e, child: Text(e))),
               ],
               icon: const Icon(Icons.filter_alt),
+            ),
+          if (currentStatus == 'done')
+            PopupMenuButton<String>(
+              onSelected: (v) => setState(() {
+                _doneTypeFilter = v == '全部类型' ? null : v;
+                _donePage = 0;
+              }),
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: '全部类型', child: Text('全部类型')),
+                ..._getDoneTypeOptions().map((e) => PopupMenuItem(value: e, child: Text(e))),
+              ],
+              icon: const Icon(Icons.category),
             ),
           if (currentStatus == 'deleted')
             PopupMenuButton<String>(
@@ -426,6 +528,9 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
         : TabBarView(
             controller: _tabController,
             children: statusKeys.map((status) {
+              if (status == 'done') {
+                return _buildDoneTab();
+              }
               final tasks = _getFilteredTasks(status);
               if (tasks.isEmpty) {
                 return const Center(child: Text('列表为空'));

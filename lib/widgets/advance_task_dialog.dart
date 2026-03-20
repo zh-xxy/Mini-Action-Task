@@ -67,8 +67,8 @@ Future<AdvanceDialogResult?> _showParseDialog({
           return AlertDialog(
             title: const Text('批量解析下一步动作'),
             content: SizedBox(
-              width: 520,
-              height: 420,
+              width: 640,
+              height: 500,
               child: Column(
                 children: [
                   Container(
@@ -102,23 +102,30 @@ Future<AdvanceDialogResult?> _showParseDialog({
                       },
                       itemBuilder: (context, index) {
                         final item = items[index];
-                        return ListTile(
+                        return Padding(
                           key: ValueKey(item.id),
-                          contentPadding: EdgeInsets.zero,
-                          leading: Checkbox(
-                            value: item.done,
-                            onChanged: (v) => setState(() => item.done = v ?? false),
-                          ),
-                          title: TextField(
-                            controller: item.controller,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
                             children: [
+                              Transform.scale(
+                                scale: 0.85,
+                                child: Checkbox(
+                                  value: item.done,
+                                  visualDensity: VisualDensity.compact,
+                                  onChanged: (v) => setState(() => item.done = v ?? false),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: TextField(
+                                  controller: item.controller,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
                               IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -134,11 +141,16 @@ Future<AdvanceDialogResult?> _showParseDialog({
                                     }
                                   });
                                 },
-                                icon: const Icon(Icons.delete_outline),
+                                icon: const Icon(Icons.delete_outline, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                               ),
                               ReorderableDragStartListener(
                                 index: index,
-                                child: const Icon(Icons.drag_handle),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 4),
+                                  child: Icon(Icons.drag_handle, size: 16),
+                                ),
                               ),
                             ],
                           ),

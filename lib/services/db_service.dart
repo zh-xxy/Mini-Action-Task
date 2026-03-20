@@ -349,4 +349,27 @@ class DBService {
     await file.writeAsString('$name\n$signature\n$avatarPath');
   }
 
+  Future<int> getAutoFreezeOverdueDays() async {
+    if (kIsWeb) return 10;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/auto_freeze_overdue_days.txt');
+      if (!await file.exists()) return 10;
+      final text = (await file.readAsString()).trim();
+      final parsed = int.tryParse(text);
+      if (parsed == null || parsed < 0) return 10;
+      return parsed;
+    } catch (_) {
+      return 10;
+    }
+  }
+
+  Future<void> saveAutoFreezeOverdueDays(int days) async {
+    if (kIsWeb) return;
+    final safe = days < 0 ? 0 : days;
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/auto_freeze_overdue_days.txt');
+    await file.writeAsString(safe.toString());
+  }
+
 }

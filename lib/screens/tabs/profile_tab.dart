@@ -24,6 +24,7 @@ class _ProfileTabState extends State<ProfileTab> {
   double _currentLevelExp = 0;
   double _needExpForNext = 10;
   String _levelTitle = '见习行动者';
+  int _autoFreezeOverdueDays = 10;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _ProfileTabState extends State<ProfileTab> {
     _loadCustomQuotes();
     _loadVersion();
     _loadExperience();
+    _loadAutoFreezeOverdueDays();
   }
 
   Future<void> _loadUserProfile() async {
@@ -56,6 +58,14 @@ class _ProfileTabState extends State<ProfileTab> {
         _version = '1.0.3';
       });
     }
+  }
+
+  Future<void> _loadAutoFreezeOverdueDays() async {
+    final value = await _dbService.getAutoFreezeOverdueDays();
+    if (!mounted) return;
+    setState(() {
+      _autoFreezeOverdueDays = value;
+    });
   }
 
   double _expNeedForLevel(int level) {
@@ -259,6 +269,43 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
+  void _editAutoFreezeOverdueDays() async {
+    final controller = TextEditingController(text: _autoFreezeOverdueDays.toString());
+    final value = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('自动冻结阈值'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: '超过剩余天数后自动冻结',
+            suffixText: '天',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              final parsed = int.tryParse(controller.text.trim());
+              Navigator.pop(context, parsed);
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (value == null) return;
+    final safe = value < 0 ? 0 : value;
+    await _dbService.saveAutoFreezeOverdueDays(safe);
+    if (!mounted) return;
+    setState(() {
+      _autoFreezeOverdueDays = safe;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('自动冻结阈值已更新')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -364,6 +411,12 @@ class _ProfileTabState extends State<ProfileTab> {
             leading: const Icon(Icons.file_download),
             title: const Text('导入任务 (CSV)'),
             onTap: _handleImportCsv,
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_suggest),
+            title: const Text('自动冻结设置'),
+            subtitle: Text('超过剩余天数 ${_autoFreezeOverdueDays} 天自动冻结（原因：超时）'),
+            onTap: _editAutoFreezeOverdueDays,
           ),
           const Divider(),
           ListTile(

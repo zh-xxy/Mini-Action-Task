@@ -184,6 +184,33 @@ class TaskService {
     await _dbService.insertLog(log);
   }
 
+  Future<int> autoFreezeOverdueTasks({int? overdueDays}) async {
+    final threshold = overdueDays ?? await _dbService.getAutoFreezeOverdueDays();
+    final allTasks = await _dbService.getAllTasks();
+    final now = DateTime.now();
+    int frozenCount = 0;
+    for (final task in allTasks) {
+      if (task.status != 'todo' && task.status != 'in_progress') continue;
+      if (task.dueInDays >= -threshold) continue;
+      task.status = 'frozen';
+      task.frozenReason = '超时';
+      task.frozenAt = now;
+      await _dbService.updateTask(task);
+      await _dbService.insertLog(
+        LogEntry(
+          id: _uuid.v4(),
+          taskId: task.id,
+          action: 'freeze',
+          energyValue: 0,
+          note: '超时',
+          createdAt: now,
+        ),
+      );
+      frozenCount++;
+    }
+    return frozenCount;
+  }
+
   String getEnergyStateName(EnergyState state) {
     switch (state) {
       case EnergyState.green: return '🟢 满电状态 (适合攻坚)';
@@ -245,7 +272,7 @@ class TaskService {
   List<Task> getRecommendedTasks(List<Task> tasks, List<LogEntry> recentLogs) {
     final state = getEnergyState(recentLogs);
     
-    List<Task> candidates = tasks.where((t) => t.status == 'todo' || t.status == 'in_progress').toList();
+    List<Task> candidates = tasks.where((t) => t.status == 'in_progress').toList();
     List<Task> filtered = [];
 
     if (state == EnergyState.green) {

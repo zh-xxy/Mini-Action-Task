@@ -36,6 +36,7 @@ class TaskCard extends StatelessWidget {
     if (task.status == 'todo') statusColor = Colors.blue;
     if (task.status == 'in_progress') statusColor = Colors.orange;
     if (task.status == 'done') statusColor = Colors.green;
+    final showNextAction = task.status != 'todo';
 
     // 通用按钮样式，缩小内边距和最小宽度
     final textButtonStyle = TextButton.styleFrom(
@@ -62,21 +63,25 @@ class TaskCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        task.nextAction.isEmpty ? '无下一步动作' : task.nextAction,
+                        showNextAction
+                            ? (task.nextAction.isEmpty ? '无下一步动作' : task.nextAction)
+                            : task.title,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           decoration: task.status == 'done' ? TextDecoration.lineThrough : null,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '所属: ${task.title}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                      if (showNextAction) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '所属: ${task.title}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

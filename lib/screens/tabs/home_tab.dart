@@ -72,6 +72,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> _loadData() async {
+    await _taskService.autoFreezeOverdueTasks();
     final tasks = await _dbService.getActiveTasks();
     final logs = await _dbService.getRecentLogs(days: 3);
     final recommended = _taskService.getRecommendedTasks(tasks, logs);
@@ -102,7 +103,7 @@ class _HomeTabState extends State<HomeTab> {
   List<Task> _buildRecommendationPool() {
     final state = _taskService.getEnergyState(_recentLogs);
     final candidates = _activeTasks
-        .where((t) => t.status == 'todo' || t.status == 'in_progress')
+        .where((t) => t.status == 'in_progress')
         .toList();
     List<Task> filtered;
     if (state == EnergyState.green) {
