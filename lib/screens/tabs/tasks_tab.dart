@@ -117,6 +117,24 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     return earliest ?? task.lastProgressAt ?? task.createdAt;
   }
 
+  String _getTotalActionDays(Task task, {DateTime? endAt}) {
+    if (task.actionHistory.isEmpty) return '0.00';
+    final now = endAt ?? DateTime.now();
+    int totalMinutes = 0;
+    for (final item in task.actionHistory) {
+      final startedRaw = item['startedAt']?.toString();
+      if (startedRaw == null || startedRaw.isEmpty) continue;
+      final startedAt = DateTime.tryParse(startedRaw);
+      if (startedAt == null) continue;
+      final endedRaw = item['endedAt']?.toString();
+      final endedAt = (endedRaw == null || endedRaw.isEmpty) ? now : DateTime.tryParse(endedRaw);
+      if (endedAt == null || endedAt.isBefore(startedAt)) continue;
+      totalMinutes += endedAt.difference(startedAt).inMinutes;
+    }
+    final days = totalMinutes / 1440;
+    return days.toStringAsFixed(2);
+  }
+
   Widget _buildDoneTab() {
     final all = _getFilteredTasks('done');
     if (all.isEmpty) {
@@ -364,8 +382,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
 
   Widget _buildTaskItem(Task task, String currentTabStatus) {
     if (currentTabStatus == 'in_progress') {
-      final now = DateTime.now();
-      final durationDays = _formatDays(_getTaskStartTime(task), now);
+      final durationDays = _getTotalActionDays(task);
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -398,7 +415,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     } else if (currentTabStatus == 'done') {
       final start = _getTaskStartTime(task);
       final end = task.lastDoneAt ?? DateTime.now();
-      final duration = _formatDays(start, end);
+      final duration = _getTotalActionDays(task, endAt: end);
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(12),

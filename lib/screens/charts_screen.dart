@@ -66,8 +66,13 @@ class _ChartsScreenState extends State<ChartsScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
+                interval: 1,
+                reservedSize: 24,
                 getTitlesWidget: (value, meta) {
-                  final date = now.subtract(Duration(days: 6 - value.toInt()));
+                  final index = value.toInt();
+                  if ((value - index).abs() > 0.001) return const SizedBox.shrink();
+                  if (index < 0 || index > 6) return const SizedBox.shrink();
+                  final date = now.subtract(Duration(days: 6 - index));
                   return Text(DateFormat('MM-dd').format(date), style: const TextStyle(fontSize: 10));
                 },
               )

@@ -85,40 +85,31 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   List<String> _achievementLabels() {
-    final labels = <String>[];
-    labels.add('今日 +${_todayExp.toStringAsFixed(1)} EXP');
-    if (_todayExp >= 8) {
-      labels.add('🔥 今日爆发');
+    String levelProgress;
+    if (_level < 5) {
+      levelProgress = '🎯 向五级冲刺';
+    } else if (_level < 10) {
+      levelProgress = '🏅 五级达成，向十级冲刺';
+    } else if (_level < 15) {
+      levelProgress = '🎯 十级成就，向十五级冲刺';
+    } else {
+      levelProgress = '🌟 里程碑';
+    }
+
+    String stateLabel;
+    if (_level < 5) {
+      stateLabel = '🌱 新手起步';
+    } else if (_todayExp >= 8) {
+      stateLabel = '🔥 今日爆发';
     } else if (_todayExp >= 5) {
-      labels.add('⚡ 今日高能');
+      stateLabel = '⚡ 今日高能';
     } else if (_todayExp > 0) {
-      labels.add('✅ 今日推进');
+      stateLabel = '✅ 今日推进';
     } else {
-      labels.add('🧭 保持推进');
+      stateLabel = '🧭 保持推进';
     }
-    if (_level >= 5) {
-      labels.add('🏅 五级达成');
-    } else {
-      labels.add('🎯 向五级冲刺');
-    }
-    if (_level >= 10) {
-      labels.add('🎯 十级成就');
-    } else {
-      labels.add('🚩 十级目标');
-    }
-    if (_level >= 15) {
-      labels.add('🌟 十五级里程碑');
-    } else {
-      labels.add('🪜 向十五级进发');
-    }
-    if (_totalExp >= 100) {
-      labels.add('🏆 百分经验达成');
-    } else if (_totalExp >= 30) {
-      labels.add('🌈 经验进阶中');
-    } else {
-      labels.add('🌱 新手起步');
-    }
-    return labels;
+
+    return [levelProgress, stateLabel];
   }
 
   Future<void> _loadExperience() async {
