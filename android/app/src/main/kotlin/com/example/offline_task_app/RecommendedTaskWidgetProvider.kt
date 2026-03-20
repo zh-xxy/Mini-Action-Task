@@ -43,6 +43,7 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widgetTaskTitle, title)
             views.setTextViewText(R.id.widgetTaskAction, nextAction)
 
+            // 1. 查看按钮：保持跳转到 App
             val openRecommendedIntent = Intent(context, MainActivity::class.java).apply {
                 action = MainActivity.ACTION_OPEN_RECOMMENDED
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -53,16 +54,18 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
                 openRecommendedIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            val refreshIntent = Intent(context, MainActivity::class.java).apply {
-                action = MainActivity.ACTION_REFRESH_RECOMMENDED
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-            val refreshPendingIntent = PendingIntent.getActivity(
+
+            // 2. 刷新按钮：改为广播 (Broadcast)，不再启动 Activity
+            val refreshIntent = Intent(MainActivity.ACTION_WIDGET_REFRESH)
+            refreshIntent.setPackage(context.packageName)
+            val refreshPendingIntent = PendingIntent.getBroadcast(
                 context,
                 appWidgetId * 10 + 2,
                 refreshIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+
+            // 3. 新建任务按钮：保持跳转
             val createTaskIntent = Intent(context, MainActivity::class.java).apply {
                 action = MainActivity.ACTION_CREATE_TASK
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -73,10 +76,12 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
                 createTaskIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widgetRoot, openRecommendedPendingIntent)
+
+            // 移除根布局的点击事件，仅为按钮设置点击
             views.setOnClickPendingIntent(R.id.widgetOpenRecommend, openRecommendedPendingIntent)
             views.setOnClickPendingIntent(R.id.widgetRefresh, refreshPendingIntent)
             views.setOnClickPendingIntent(R.id.widgetCreateTask, createTaskPendingIntent)
+
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }

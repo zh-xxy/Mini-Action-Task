@@ -11,7 +11,7 @@
         android:id="@+id/widgetTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="推荐任务"
+        android:text="💡 推荐任务"
         android:textStyle="bold"
         android:textSize="14sp"
         android:textColor="@android:color/black" />
@@ -19,8 +19,10 @@
     <TextView
         android:id="@+id/widgetTaskTitle"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
         android:text="暂无推荐任务"
         android:textStyle="bold"
         android:textSize="16sp"
@@ -30,7 +32,7 @@
         android:id="@+id/widgetTaskAction"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:text="先打开应用获取推荐"
         android:textSize="13sp"
         android:textColor="#666666" />
@@ -38,34 +40,49 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:gravity="end"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/widgetOpenRecommend"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="14dp"
-            android:text="查看推荐"
-            android:textColor="#1E88E5"
-            android:textSize="12sp" />
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_button_background"
+            android:gravity="center"
+            android:paddingVertical="10dp"
+            android:text="查看"
+            android:textColor="#1976D2"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widgetRefresh"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="14dp"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="2dp"
+            android:background="@drawable/widget_button_background"
+            android:gravity="center"
+            android:paddingVertical="10dp"
             android:text="刷新"
-            android:textColor="#1E88E5"
-            android:textSize="12sp" />
+            android:textColor="#1976D2"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widgetCreateTask"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="新建任务"
-            android:textColor="#1E88E5"
-            android:textSize="12sp" />
+            android:layout_weight="1.2"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_button_background"
+            android:gravity="center"
+            android:paddingVertical="10dp"
+            android:text="+ 新建任务"
+            android:textColor="#1976D2"
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

@@ -4,8 +4,8 @@
         android:shortcutId="create_task"
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
-        android:shortcutShortLabel="新增任务"
-        android:shortcutLongLabel="快速新增任务">
+        android:shortcutShortLabel="@string/shortcut_short_label"
+        android:shortcutLongLabel="@string/shortcut_long_label">
         <intent
             android:action="com.example.miniactiontask.CREATE_TASK"
             android:targetPackage="com.example.offline_task_app"

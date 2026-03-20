@@ -8,6 +8,7 @@ import 'package:mini_action_task/models/log_entry.dart';
 import 'package:mini_action_task/widgets/recommended_task_card.dart';
 import 'package:mini_action_task/widgets/advance_task_dialog.dart';
 import 'package:mini_action_task/screens/task_edit_screen.dart';
+import 'package:mini_action_task/main.dart' show onBackgroundRefreshRequested;
 import 'dart:math';
 
 class HomeTab extends StatefulWidget {
@@ -52,6 +53,22 @@ class _HomeTabState extends State<HomeTab> {
     super.initState();
     _loadData();
     _loadQuotes();
+    
+    // 注册全局刷新回调
+    onBackgroundRefreshRequested = () {
+      if (mounted) {
+        _refreshRecommendedTasks();
+      }
+    };
+  }
+
+  @override
+  void dispose() {
+    // 组件销毁时移除回调
+    if (onBackgroundRefreshRequested != null) {
+      onBackgroundRefreshRequested = null;
+    }
+    super.dispose();
   }
 
   Future<void> _loadQuotes() async {

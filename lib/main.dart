@@ -11,6 +11,9 @@ import 'models/log_entry.dart';
 final GlobalKey<NavigatorState> _appNavigatorKey = GlobalKey<NavigatorState>();
 const MethodChannel _shortcutChannel = MethodChannel('mini_action_task/shortcut');
 
+// 定义一个全局的刷新回调，由 HomeTab 注册
+VoidCallback? onBackgroundRefreshRequested;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -23,17 +26,22 @@ void main() async {
   } catch (e) {
     print("Init demo data failed: $e");
   }
+
   _shortcutChannel.setMethodCallHandler((call) async {
     if (call.method == 'openNewTask') {
       _appNavigatorKey.currentState?.push(
         MaterialPageRoute(builder: (context) => const TaskEditScreen()),
       );
-    }
-    if (call.method == 'openRecommendedTasks' || call.method == 'refreshRecommendation') {
+    } else if (call.method == 'openRecommendedTasks') {
       _appNavigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
         (route) => false,
       );
+    } else if (call.method == 'refreshRecommendation') {
+      // 触发静默刷新，不跳转页面
+      if (onBackgroundRefreshRequested != null) {
+        onBackgroundRefreshRequested!();
+      }
     }
   });
   
