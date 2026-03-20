@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@android:color/white">
+
+    <TextView
+        android:id="@+id/widgetTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="推荐任务"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/widgetTaskTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="暂无推荐任务"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/widgetTaskAction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="先打开应用获取推荐"
+        android:textSize="13sp"
+        android:textColor="#666666" />
+</LinearLayout>

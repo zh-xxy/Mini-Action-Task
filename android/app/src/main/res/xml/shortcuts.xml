@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="create_task"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="新增任务"
+        android:shortcutLongLabel="快速新增任务">
+        <intent
+            android:action="com.example.miniactiontask.CREATE_TASK"
+            android:targetPackage="com.example.offline_task_app"
+            android:targetClass="com.example.offline_task_app.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>
