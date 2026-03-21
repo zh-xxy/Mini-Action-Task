@@ -16,7 +16,7 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
   final DBService _dbService = DBService();
   static final Uri _releaseUri = Uri.parse('https://github.com/zh-xxy/Mini-Action-Task/releases');
-  String _version = '1.0.4';
+  String _version = '1.0.5';
   String _name = 'User';
   String _signature = '点击编辑签名';
   String _avatarPath = '';
@@ -57,7 +57,7 @@ class _ProfileTabState extends State<ProfileTab> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _version = '1.0.4';
+        _version = '1.0.5';
       });
     }
   }
