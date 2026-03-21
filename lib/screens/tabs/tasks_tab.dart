@@ -135,19 +135,27 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     final pageTasks = allFiltered.sublist(start, end);
     final grouped = <String, List<Task>>{};
     for (final task in pageTasks) {
-      final key = task.type.trim().isEmpty ? '未分类' : task.type.trim();
+      final key = task.importance.trim().isEmpty ? '日常' : task.importance.trim();
       grouped.putIfAbsent(key, () => []).add(task);
     }
-    final keys = grouped.keys.toList()..sort();
+    final keys = grouped.keys.toList()
+      ..sort((a, b) {
+        final ai = _importanceOptions.indexOf(a);
+        final bi = _importanceOptions.indexOf(b);
+        final ra = ai == -1 ? 999 : ai;
+        final rb = bi == -1 ? 999 : bi;
+        if (ra != rb) return ra.compareTo(rb);
+        return a.compareTo(b);
+      });
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        ...keys.expand((type) {
-          final list = grouped[type] ?? [];
+        ...keys.expand((importance) {
+          final list = grouped[importance] ?? [];
           return [
             Padding(
               padding: const EdgeInsets.only(bottom: 8, top: 8),
-              child: Text('类型：$type（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              child: Text('重要性：$importance（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
             ...list.map((task) => _buildTaskItem(task, 'done')),
           ];
@@ -367,18 +375,18 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget _buildTypeChip(String type) {
-    final label = type.trim().isEmpty ? '未分类' : type.trim();
+  Widget _buildImportanceChip(String importance) {
+    final color = _getImportanceColor(importance);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.12),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.grey.withOpacity(0.45)),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Text(
-        label,
-        style: const TextStyle(fontSize: 10, color: Colors.black87, fontWeight: FontWeight.w600),
+        importance,
+        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -469,7 +477,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               Row(
                 children: [
                   Expanded(child: Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
-                  _buildTypeChip(task.type),
+                  _buildImportanceChip(task.importance),
                 ],
               ),
               const SizedBox(height: 6),
@@ -510,7 +518,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                     Row(
                       children: [
                         Expanded(child: Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
-                        _buildTypeChip(task.type),
+                        _buildImportanceChip(task.importance),
                       ],
                     ),
                     const SizedBox(height: 6),
