@@ -64,7 +64,7 @@ class _AppShellState extends State<_AppShell> {
     switch (call.method) {
       case 'openRecommendedTasks':
         navigator.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 1)),
+          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 0)),
           (route) => false,
         );
         break;
@@ -74,7 +74,10 @@ class _AppShellState extends State<_AppShell> {
           (route) => false,
         );
         await Future<void>.delayed(const Duration(milliseconds: 80));
-        navigator.push(MaterialPageRoute(builder: (_) => const TaskEditScreen()));
+        await navigator.push(MaterialPageRoute(builder: (_) => const TaskEditScreen()));
+        if (currentContext.mounted) {
+          Provider.of<TaskProvider>(currentContext, listen: false).refresh();
+        }
         break;
       case 'refreshRecommendation':
         Provider.of<TaskProvider>(currentContext, listen: false).rotateRecommendation();

@@ -31,15 +31,24 @@ class MainActivity : FlutterActivity() {
                     pendingActionMethod = null
                 }
                 result.success(true)
-            } else if (call.method == "updateWidgetTask") {
-                val title = call.argument<String>("title") ?: "暂无推荐任务"
-                val nextAction = call.argument<String>("nextAction") ?: "先新增一个任务开始吧"
+            } else if (call.method == "updateWidgetTasks") {
+                val tasks = call.argument<List<Map<String, String>>>("tasks")
                 val sp = getSharedPreferences("mini_action_task_widget", Context.MODE_PRIVATE)
-                sp.edit()
-                    .putString("title", title)
-                    .putString("nextAction", nextAction)
-                    .apply()
-                RecommendedTaskWidgetProvider.updateAll(this, title, nextAction)
+                val editor = sp.edit()
+                if (tasks != null && tasks.isNotEmpty()) {
+                    editor.putInt("task_count", tasks.size)
+                    for (i in tasks.indices) {
+                        val title = tasks[i]["title"] ?: "暂无推荐任务"
+                        val nextAction = tasks[i]["nextAction"] ?: "先新增一个任务开始吧"
+                        editor.putString("title_$i", title)
+                        editor.putString("nextAction_$i", nextAction)
+                    }
+                } else {
+                    editor.putInt("task_count", 0)
+                }
+                editor.putInt("current_index", 0)
+                editor.apply()
+                RecommendedTaskWidgetProvider.updateAll(this)
                 result.success(true)
             } else {
                 result.notImplemented()

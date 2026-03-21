@@ -27,13 +27,25 @@ class LogEntry {
   }
 
   factory LogEntry.fromMap(Map<String, dynamic> map) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null || value.toString().isEmpty) return defaultValue;
+      if (value is double) return value;
+      if (value is num) return value.toDouble();
+      return double.tryParse(value.toString()) ?? defaultValue;
+    }
+
+    DateTime parseDateTime(dynamic value, DateTime defaultValue) {
+      if (value == null || value.toString().isEmpty || value.toString() == 'null') return defaultValue;
+      return DateTime.tryParse(value.toString()) ?? defaultValue;
+    }
+
     return LogEntry(
-      id: map['id'],
-      taskId: map['task_id'],
-      action: map['action'],
-      energyValue: map['energy_value'],
-      note: map['note'],
-      createdAt: DateTime.parse(map['created_at']),
+      id: map['id']?.toString() ?? '',
+      taskId: map['task_id']?.toString() ?? '',
+      action: map['action']?.toString() ?? '',
+      energyValue: parseDouble(map['energy_value'], 0.0),
+      note: map['note']?.toString() ?? '',
+      createdAt: parseDateTime(map['created_at'], DateTime.now()),
     );
   }
 }

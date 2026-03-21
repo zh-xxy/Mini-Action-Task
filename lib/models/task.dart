@@ -133,29 +133,53 @@ class Task {
   }
 
   factory Task.fromMap(Map<String, dynamic> map) {
+    int parseInt(dynamic value, int defaultValue) {
+      if (value == null || value.toString().isEmpty) return defaultValue;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return int.tryParse(value.toString()) ?? defaultValue;
+    }
+
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null || value.toString().isEmpty) return defaultValue;
+      if (value is double) return value;
+      if (value is num) return value.toDouble();
+      return double.tryParse(value.toString()) ?? defaultValue;
+    }
+
+    bool parseBool(dynamic value, bool defaultValue) {
+      if (value == null || value.toString().isEmpty) return defaultValue;
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      return value.toString() == '1' || value.toString().toLowerCase() == 'true';
+    }
+
+    DateTime? parseDateTime(dynamic value) {
+      if (value == null || value.toString().isEmpty || value.toString() == 'null') return null;
+      return DateTime.tryParse(value.toString());
+    }
+
     return Task(
-      id: map['id'],
-      title: map['title'],
-      status: map['status'],
-      type: map['type'],
-      priority: map['priority'],
-      urgency: map['urgency'],
-      importance: map['importance'],
-      dueDate: map['due_date'] != null
-          ? DateTime.tryParse(map['due_date'])
-          : DateTime.now().add(Duration(days: map['due_in_days'] ?? 0)),
-      energyEstimate: map['energy_estimate'],
-      lowEnergyOk: map['low_energy_ok'] == 1,
-      nextAction: map['next_action'],
-      note: map['note'] ?? '',
-      parentId: map['parent_id'],
-      createdAt: DateTime.parse(map['created_at']),
-      lastProgressAt: map['last_progress_at'] != null ? DateTime.parse(map['last_progress_at']) : null,
-      lastDoneAt: map['last_done_at'] != null ? DateTime.parse(map['last_done_at']) : null,
-      deletedAt: map['deleted_at'] != null ? DateTime.tryParse(map['deleted_at']) : null,
-      frozenReason: map['frozen_reason'],
-      frozenAt: map['frozen_at'] != null ? DateTime.tryParse(map['frozen_at']) : null,
-      actionHistory: List<Map<String, dynamic>>.from(jsonDecode(map['action_history'] ?? '[]')),
+      id: map['id']?.toString() ?? '',
+      title: map['title']?.toString() ?? '',
+      status: map['status']?.toString() ?? 'todo',
+      type: map['type']?.toString() ?? 'task',
+      priority: parseInt(map['priority'], 0),
+      urgency: parseInt(map['urgency'], 0),
+      importance: map['importance']?.toString() ?? '日常',
+      dueDate: parseDateTime(map['due_date']) ?? DateTime.now().add(Duration(days: parseInt(map['due_in_days'], 0))),
+      energyEstimate: parseDouble(map['energy_estimate'], 1.0),
+      lowEnergyOk: parseBool(map['low_energy_ok'], false),
+      nextAction: map['next_action']?.toString() ?? '',
+      note: map['note']?.toString() ?? '',
+      parentId: map['parent_id']?.toString().isNotEmpty == true ? map['parent_id']?.toString() : null,
+      createdAt: parseDateTime(map['created_at']) ?? DateTime.now(),
+      lastProgressAt: parseDateTime(map['last_progress_at']),
+      lastDoneAt: parseDateTime(map['last_done_at']),
+      deletedAt: parseDateTime(map['deleted_at']),
+      frozenReason: map['frozen_reason']?.toString().isNotEmpty == true ? map['frozen_reason']?.toString() : null,
+      frozenAt: parseDateTime(map['frozen_at']),
+      actionHistory: List<Map<String, dynamic>>.from(jsonDecode((map['action_history']?.toString() ?? '').isEmpty ? '[]' : map['action_history'].toString())),
     );
   }
 }

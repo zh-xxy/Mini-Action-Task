@@ -153,14 +153,29 @@ class TaskProvider extends ChangeNotifier {
   }
 
   Future<void> _syncWidgetRecommendation() async {
-    final recommended = getRecommendedTasks();
-    final task = recommended.isNotEmpty ? recommended.first : null;
-    final title = task?.title ?? '暂无推荐任务';
-    final nextAction = _firstActionLine(task?.nextAction ?? '');
+    final state = _taskService.getEnergyState(_recentLogs);
+    List<Task> candidates = activeTasks.where((t) => t.status == 'in_progress').toList();
+    List<Task> filtered = [];
+    if (state == EnergyState.green) {
+      filtered = List.from(candidates);
+    } else if (state == EnergyState.yellow) {
+      filtered = candidates.where((t) => t.energyEstimate <= 3).toList();
+    } else {
+      filtered = candidates.where((t) => t.lowEnergyOk && t.energyEstimate <= 2).toList();
+    }
+    if (filtered.isEmpty) {
+      filtered = List.from(candidates);
+    }
+    filtered.sort((a, b) => _taskService.taskRankScore(b).compareTo(_taskService.taskRankScore(a)));
+
+    final list = filtered.map((t) => {
+      'title': t.title,
+      'nextAction': _firstActionLine(t.nextAction ?? '')
+    }).toList();
+
     try {
-      await _shortcutChannel.invokeMethod('updateWidgetTask', {
-        'title': title,
-        'nextAction': nextAction,
+      await _shortcutChannel.invokeMethod('updateWidgetTasks', {
+        'tasks': list,
       });
     } catch (_) {}
   }

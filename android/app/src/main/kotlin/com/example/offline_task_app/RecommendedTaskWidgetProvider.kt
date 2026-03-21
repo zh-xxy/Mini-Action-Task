@@ -9,24 +9,48 @@ import android.content.Intent
 import android.widget.RemoteViews
 
 class RecommendedTaskWidgetProvider : AppWidgetProvider() {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == MainActivity.ACTION_REFRESH_RECOMMENDED) {
+            val sp = context.getSharedPreferences("mini_action_task_widget", Context.MODE_PRIVATE)
+            val count = sp.getInt("task_count", 0)
+            if (count > 0) {
+                var currentIndex = sp.getInt("current_index", 0)
+                currentIndex = (currentIndex + 1) % count
+                sp.edit().putInt("current_index", currentIndex).apply()
+                updateAll(context)
+            }
+        }
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
         val sp = context.getSharedPreferences("mini_action_task_widget", Context.MODE_PRIVATE)
-        val title = sp.getString("title", "暂无推荐任务") ?: "暂无推荐任务"
-        val nextAction = sp.getString("nextAction", "先打开应用获取推荐") ?: "先打开应用获取推荐"
+        val count = sp.getInt("task_count", 0)
+        val currentIndex = sp.getInt("current_index", 0)
+        val title = if (count > 0) sp.getString("title_$currentIndex", "暂无推荐任务") ?: "暂无推荐任务" else sp.getString("title", "暂无推荐任务") ?: "暂无推荐任务"
+        val nextAction = if (count > 0) sp.getString("nextAction_$currentIndex", "先打开应用获取推荐") ?: "先打开应用获取推荐" else sp.getString("nextAction", "先打开应用获取推荐") ?: "先打开应用获取推荐"
+        
         appWidgetIds.forEach { id ->
             updateOne(context, appWidgetManager, id, title, nextAction)
         }
     }
 
     companion object {
-        fun updateAll(context: Context, title: String, nextAction: String) {
+        fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, RecommendedTaskWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)
+            
+            val sp = context.getSharedPreferences("mini_action_task_widget", Context.MODE_PRIVATE)
+            val count = sp.getInt("task_count", 0)
+            val currentIndex = sp.getInt("current_index", 0)
+            val title = if (count > 0) sp.getString("title_$currentIndex", "暂无推荐任务") ?: "暂无推荐任务" else sp.getString("title", "暂无推荐任务") ?: "暂无推荐任务"
+            val nextAction = if (count > 0) sp.getString("nextAction_$currentIndex", "先打开应用获取推荐") ?: "先打开应用获取推荐" else sp.getString("nextAction", "先打开应用获取推荐") ?: "先打开应用获取推荐"
+
             ids.forEach { id ->
                 updateOne(context, manager, id, title, nextAction)
             }
@@ -55,11 +79,10 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val refreshIntent = Intent(context, MainActivity::class.java).apply {
+            val refreshIntent = Intent(context, RecommendedTaskWidgetProvider::class.java).apply {
                 action = MainActivity.ACTION_REFRESH_RECOMMENDED
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
-            val refreshPendingIntent = PendingIntent.getActivity(
+            val refreshPendingIntent = PendingIntent.getBroadcast(
                 context,
                 appWidgetId * 10 + 2,
                 refreshIntent,

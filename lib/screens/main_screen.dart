@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:mini_action_task/services/task_provider.dart';
 import 'package:mini_action_task/screens/tabs/home_tab.dart';
 import 'package:mini_action_task/screens/tabs/tasks_tab.dart';
 import 'package:mini_action_task/screens/tabs/summary_tab.dart';
@@ -58,8 +60,10 @@ class _MainScreenState extends State<MainScreen> {
                   context,
                   MaterialPageRoute(builder: (context) => const TaskEditScreen()),
                 );
-                // Trigger rebuild
-                setState(() {}); 
+                // Trigger provider refresh to fetch new data from DB
+                if (mounted) {
+                  Provider.of<TaskProvider>(context, listen: false).refresh();
+                }
               },
               child: const Icon(Icons.add),
             )

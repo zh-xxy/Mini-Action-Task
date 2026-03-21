@@ -269,7 +269,21 @@ class _ProfileTabState extends State<ProfileTab> {
   void _handleBackup() async {
     try {
       final path = await _dbService.backupDatabase();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('备份成功: $path')));
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('备份成功'),
+            content: Text('已备份至: $path\n\n【重要提示】\n备份文件默认保存在应用私有目录下。请务必前往文件管理器将.db文件复制到其他目录（但有些系统可能不支持复制.db文件，则优先导出csv），否则卸载app后备份文件也会一并丢失！'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('我知道了'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('备份失败: $e')));
     }
@@ -350,7 +364,21 @@ class _ProfileTabState extends State<ProfileTab> {
     try {
       final taskPath = await _dbService.exportTasksCsv();
       final logPath = await _dbService.exportLogsCsv();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已导出:\nTasks: $taskPath\nLogs: $logPath')));
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('导出成功'),
+            content: Text('已导出:\nTasks: $taskPath\nLogs: $logPath\n\n【重要提示】\n备份文件默认保存在应用私有目录下。请务必前往文件管理器将这两个.csv文件复制/移动到其他目录，否则卸载app后备份文件也会一并丢失！'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('我知道了'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导出失败: $e')));
     }

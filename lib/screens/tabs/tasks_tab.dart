@@ -155,7 +155,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           return [
             Padding(
               padding: const EdgeInsets.only(bottom: 8, top: 8),
-              child: Text('重要性：$importance（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              child: Text('类型：$importance（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
             ...list.map((task) => _buildTaskItem(task, 'done')),
           ];
