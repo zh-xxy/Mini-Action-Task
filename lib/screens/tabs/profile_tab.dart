@@ -290,24 +290,60 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   void _handleImportCsv() async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('导入数据说明'),
+        content: const Text('为了完整恢复您的数据（包括任务列表、历史统计、经验等级等），建议先后导入 "tasks_export" 和 "logs_export" 两个 CSV 文件。\n\n点击“继续”选择其中一个文件进行导入。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('继续选择文件')),
+        ],
+      ),
+    );
+
+    if (proceed != true) return;
+
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
     if (result != null && result.files.single.path != null) {
       try {
-        final count = await _dbService.importTasksFromCsv(result.files.single.path!);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('成功导入 $count 条任务')));
+        final path = result.files.single.path!;
+        int count = 0;
+        bool isTask = false;
+        if (path.contains('tasks_export')) {
+          isTask = true;
+          count = await _dbService.importTasksFromCsv(path);
+        } else if (path.contains('logs_export')) {
+          count = await _dbService.importLogsFromCsv(path);
+        } else {
+          isTask = true;
+          count = await _dbService.importTasksFromCsv(path);
+        }
+        
+        if (mounted) {
+          String message = '成功导入 $count 条记录';
+          if (isTask) {
+            message += '。提示：记得再次点击导入以选择 logs 文件恢复统计数据。';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 4),
+          ));
+        }
       } catch (e) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导入失败: $e')));
       }
     }
   }
 
-  void _exportTasks() async {
+  void _exportAllCsv() async {
     try {
-      final path = await _dbService.exportTasksCsv();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tasks 已导出至: $path')));
+      final taskPath = await _dbService.exportTasksCsv();
+      final logPath = await _dbService.exportLogsCsv();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已导出:\nTasks: $taskPath\nLogs: $logPath')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导出失败: $e')));
     }
@@ -444,12 +480,14 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           ListTile(
             leading: const Icon(Icons.file_upload),
-            title: const Text('导出任务 (CSV)'),
-            onTap: _exportTasks,
+            title: const Text('导出全部数据 (CSV)'),
+            subtitle: const Text('连带导出任务与动作日志'),
+            onTap: _exportAllCsv,
           ),
           ListTile(
             leading: const Icon(Icons.file_download),
-            title: const Text('导入任务 (CSV)'),
+            title: const Text('导入数据 (CSV)'),
+            subtitle: const Text('建议先后导入 tasks 和 logs 文件以完整恢复'),
             onTap: _handleImportCsv,
           ),
           ListTile(
@@ -461,7 +499,7 @@ class _ProfileTabState extends State<ProfileTab> {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.format_quote),
-            title: const Text('自定义今日提醒'),
+            title: const Text('自定义今日提醒语录库'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _editQuotes,
           ),

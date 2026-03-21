@@ -171,7 +171,7 @@ class DBService {
       return;
     }
     final db = await database;
-    await db.insert('logs', log.toMap());
+    await db.insert('logs', log.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<LogEntry>> getRecentLogs({int days = 3}) async {
@@ -266,6 +266,35 @@ class DBService {
     final file = File('${dir.path}/logs_export_${DateTime.now().millisecondsSinceEpoch}.csv');
     await file.writeAsString(csv);
     return file.path;
+  }
+
+  Future<int> importLogsFromCsv(String filePath) async {
+    final file = File(filePath);
+    final csvString = await file.readAsString();
+    final List<List<dynamic>> rows = const CsvToListConverter().convert(csvString);
+    
+    if (rows.isEmpty) return 0;
+    
+    final header = rows[0].map((e) => e.toString()).toList();
+    int count = 0;
+    
+    for (int i = 1; i < rows.length; i++) {
+      final row = rows[i];
+      final Map<String, dynamic> map = {};
+      for (int j = 0; j < header.length; j++) {
+        if (j < row.length) {
+          map[header[j]] = row[j];
+        }
+      }
+      try {
+        final log = LogEntry.fromMap(map);
+        await insertLog(log);
+        count++;
+      } catch (e) {
+        print('Error importing log row $i: $e');
+      }
+    }
+    return count;
   }
 
   // --- Database Backup/Restore ---

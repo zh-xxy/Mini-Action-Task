@@ -207,6 +207,9 @@ class _ChartsScreenState extends State<ChartsScreen> {
   }
 
   Widget _buildEfficiencyHourChart() {
+    final now = DateTime.now();
+    final cutoff = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 4)); // 最近5天（含今天）
+    
     final doneTimes = <DateTime>[];
     for (final task in _tasks) {
       if (task.status == 'deleted') continue;
@@ -215,7 +218,9 @@ class _ChartsScreenState extends State<ChartsScreen> {
         if (endedAt == null || endedAt.isEmpty) continue;
         final dt = DateTime.tryParse(endedAt);
         if (dt == null) continue;
-        doneTimes.add(dt.toLocal());
+        final local = dt.toLocal();
+        if (local.isBefore(cutoff)) continue;
+        doneTimes.add(local);
       }
     }
     doneTimes.sort();
@@ -373,7 +378,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
     return '${weekYear}${week.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildActionHeatmap({int weeks = 20}) {
+  Widget _buildActionHeatmap({int weeks = 18}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final weekdayIndex = today.weekday - DateTime.monday;
@@ -505,7 +510,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
               _buildActionHeatmap(),
               const SizedBox(height: 32),
 
-              const Text('高效率时段（完成时间与密度）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('近5天高效率时段', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               _buildEfficiencyHourChart(),
               const SizedBox(height: 32),
