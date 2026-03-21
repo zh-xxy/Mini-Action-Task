@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../models/log_entry.dart';
@@ -8,10 +9,13 @@ import 'task_service.dart';
 class TaskProvider extends ChangeNotifier {
   final DBService _dbService = DBService();
   final TaskService _taskService = TaskService();
+  static const MethodChannel _shortcutChannel = MethodChannel('mini_action_task/shortcut');
 
   List<Task> _allTasks = [];
   List<LogEntry> _recentLogs = [];
   bool _isLoading = false;
+
+  int _recommendationOffset = 0;
 
   List<Task> get allTasks => _allTasks;
   List<LogEntry> get recentLogs => _recentLogs;
@@ -22,6 +26,12 @@ class TaskProvider extends ChangeNotifier {
   EnergyState get energyState => _taskService.getEnergyState(_recentLogs);
   double get recentEnergyTotal => _taskService.getRecentEnergyTotal(_recentLogs);
   String get energyStateName => _taskService.getEnergyStateName(energyState);
+
+  void rotateRecommendation() {
+    _recommendationOffset++;
+    notifyListeners();
+    _syncWidgetRecommendation();
+  }
 
   Future<void> loadData() async {
     _isLoading = true;
@@ -37,6 +47,7 @@ class TaskProvider extends ChangeNotifier {
     }
 
     _recentLogs = await _dbService.getRecentLogs(days: 3); // 从 7 天改为 3 天
+    await _syncWidgetRecommendation();
 
     _isLoading = false;
     notifyListeners();
@@ -138,6 +149,27 @@ class TaskProvider extends ChangeNotifier {
   }
   
   List<Task> getRecommendedTasks() {
-    return _taskService.getRecommendedTasks(activeTasks, _recentLogs);
+    return _taskService.getRecommendedTasks(activeTasks, _recentLogs, offset: _recommendationOffset);
+  }
+
+  Future<void> _syncWidgetRecommendation() async {
+    final recommended = getRecommendedTasks();
+    final task = recommended.isNotEmpty ? recommended.first : null;
+    final title = task?.title ?? '暂无推荐任务';
+    final nextAction = _firstActionLine(task?.nextAction ?? '');
+    try {
+      await _shortcutChannel.invokeMethod('updateWidgetTask', {
+        'title': title,
+        'nextAction': nextAction,
+      });
+    } catch (_) {}
+  }
+
+  String _firstActionLine(String text) {
+    for (final raw in text.split('\n')) {
+      final line = raw.trim();
+      if (line.isNotEmpty) return line;
+    }
+    return '先新增一个任务开始吧';
   }
 }

@@ -17,6 +17,7 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   String _randomQuote = '';
+  bool _isRefreshingRecommendation = false;
   static String _cachedQuote = '';
   static DateTime? _cachedQuoteRefreshTime;
 
@@ -115,6 +116,26 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
+  Future<void> _refreshRecommendation(TaskProvider provider) async {
+    if (_isRefreshingRecommendation) return;
+    setState(() {
+      _isRefreshingRecommendation = true;
+    });
+    // 增加短暂延迟，让用户能感知到刷新动作
+    await Future.delayed(const Duration(milliseconds: 400));
+    provider.rotateRecommendation();
+    if (!mounted) return;
+    setState(() {
+      _isRefreshingRecommendation = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('推荐已刷新'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<TaskProvider>(
@@ -140,8 +161,14 @@ class _HomeTabState extends State<HomeTab> {
                   children: [
                     Text('下一步推荐', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     IconButton(
-                      onPressed: provider.refresh,
-                      icon: const Icon(Icons.refresh),
+                      onPressed: () => _refreshRecommendation(provider),
+                      icon: _isRefreshingRecommendation
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh),
                       tooltip: '刷新',
                     ),
                   ],

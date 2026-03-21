@@ -55,10 +55,11 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // 2. 刷新按钮：改为广播 (Broadcast)，不再启动 Activity
-            val refreshIntent = Intent(MainActivity.ACTION_WIDGET_REFRESH)
-            refreshIntent.setPackage(context.packageName)
-            val refreshPendingIntent = PendingIntent.getBroadcast(
+            val refreshIntent = Intent(context, MainActivity::class.java).apply {
+                action = MainActivity.ACTION_REFRESH_RECOMMENDED
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val refreshPendingIntent = PendingIntent.getActivity(
                 context,
                 appWidgetId * 10 + 2,
                 refreshIntent,

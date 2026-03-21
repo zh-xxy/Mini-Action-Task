@@ -558,6 +558,31 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     );
   }
 
+  Widget _buildTodoHintCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.tips_and_updates, size: 18, color: Colors.blue),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '点击任务卡片中的“推进”，任务会进入“进行中”；只有进行中的任务才会出现在今日推荐中。',
+              style: TextStyle(fontSize: 12, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = ['待选', '进行中', '已完成', '冻结', '删除'];
@@ -619,6 +644,21 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                     return _buildDoneTab(provider.allTasks);
                   }
                   final tasks = _getFilteredTasks(provider.allTasks, status);
+                  if (status == 'todo') {
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        _buildTodoHintCard(),
+                        if (tasks.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 20),
+                            child: Center(child: Text('列表为空')),
+                          )
+                        else
+                          ...tasks.map((task) => _buildTaskItem(task, status)),
+                      ],
+                    );
+                  }
                   if (tasks.isEmpty) {
                     return const Center(child: Text('列表为空'));
                   }

@@ -318,7 +318,7 @@ class TaskService {
     return score;
   }
 
-  List<Task> getRecommendedTasks(List<Task> tasks, List<LogEntry> recentLogs) {
+  List<Task> getRecommendedTasks(List<Task> tasks, List<LogEntry> recentLogs, {int offset = 0}) {
     final state = getEnergyState(recentLogs);
     
     List<Task> candidates = tasks.where((t) => t.status == 'in_progress').toList();
@@ -341,6 +341,14 @@ class TaskService {
     int count = 3;
     if (state == EnergyState.yellow || state == EnergyState.red) count = 2;
 
-    return filtered.take(count).toList();
+    if (filtered.isEmpty) return [];
+
+    int safeOffset = offset % filtered.length;
+    List<Task> rotated = [];
+    for (int i = 0; i < filtered.length; i++) {
+      rotated.add(filtered[(i + safeOffset) % filtered.length]);
+    }
+
+    return rotated.take(count).toList();
   }
 }
