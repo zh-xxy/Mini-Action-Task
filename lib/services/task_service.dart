@@ -26,10 +26,20 @@ class TaskService {
     return text.replaceFirst(RegExp(r'\.$'), '');
   }
 
+  String _normalizeActionName(String text) => text.trim();
+
+  String _historyActionName(Map<String, dynamic> item) => _normalizeActionName((item['action'] ?? '').toString());
+
+  bool _containsActionName(List<Map<String, dynamic>> history, String actionName) {
+    final normalized = _normalizeActionName(actionName);
+    if (normalized.isEmpty) return false;
+    return history.any((h) => _historyActionName(h) == normalized);
+  }
+
   Future<void> advanceTask(Task task, String nextActionText) async {
     final now = DateTime.now();
     final trimmedText = nextActionText.trim();
-    final nextAction = _firstNonEmptyLine(trimmedText);
+    final nextAction = _normalizeActionName(_firstNonEmptyLine(trimmedText));
     task.nextAction = trimmedText;
     task.lastProgressAt = now;
     if (['todo', 'frozen'].contains(task.status)) {
@@ -39,20 +49,24 @@ class TaskService {
     }
     
     List<Map<String, dynamic>> history = List.from(task.actionHistory);
+    final hasActionInHistory = _containsActionName(history, nextAction);
+    final isRunningSame = history.isNotEmpty && history.last['endedAt'] == null && _historyActionName(history.last) == nextAction;
+    final canStartNewAction = nextAction.isNotEmpty && (!hasActionInHistory || isRunningSame);
     // 如果最后一个动作还没结束，且动作内容一致，则不新增，只保持进行中
     if (history.isNotEmpty && history.last['endedAt'] == null) {
-        if (history.last['action'] == nextAction) {
+        if (_historyActionName(history.last) == nextAction) {
             // 内容一致，不操作
         } else {
-            // 内容不一致，结束上一个，开启下一个
-            history.last['endedAt'] = now.toIso8601String();
-            history.add({
-              'action': nextAction,
-              'startedAt': now.toIso8601String(),
-              'endedAt': null,
-            });
+            if (canStartNewAction) {
+              history.last['endedAt'] = now.toIso8601String();
+              history.add({
+                'action': nextAction,
+                'startedAt': now.toIso8601String(),
+                'endedAt': null,
+              });
+            }
         }
-    } else {
+    } else if (canStartNewAction) {
         history.add({
           'action': nextAction,
           'startedAt': now.toIso8601String(),
@@ -81,7 +95,7 @@ class TaskService {
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
     final trimmedText = nextActionText.trim();
-    final nextAction = _firstNonEmptyLine(trimmedText);
+    final nextAction = _normalizeActionName(_firstNonEmptyLine(trimmedText));
 
     task.nextAction = trimmedText;
     task.lastProgressAt = now;
@@ -92,10 +106,12 @@ class TaskService {
     }
 
     final history = task.actionHistory.map((e) => Map<String, dynamic>.from(e)).toList();
+    final isRunningSame = history.isNotEmpty && history.last['endedAt'] == null && _historyActionName(history.last) == nextAction;
+    final canStartNewAction = nextAction.isNotEmpty && (!_containsActionName(history, nextAction) || isRunningSame);
     
     // 1. 处理已勾选完成的动作
     if (completedActionsInOrder.isNotEmpty) {
-      final cleaned = completedActionsInOrder.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      final cleaned = completedActionsInOrder.map(_normalizeActionName).where((e) => e.isNotEmpty).toList();
       
       // 如果当前有一个正在进行的动作，先处理它
       Map<String, dynamic>? openEntry;
@@ -105,7 +121,7 @@ class TaskService {
 
       for (var actionName in cleaned) {
         // 检查这个动作是否已经存在于历史中（防止重复添加）
-        bool alreadyExists = history.any((h) => h['action'] == actionName && h['endedAt'] != null);
+        bool alreadyExists = _containsActionName(history, actionName);
         if (!alreadyExists) {
             history.add({
               'action': actionName,
@@ -117,15 +133,18 @@ class TaskService {
       
       // 如果之前的 openEntry 不在 cleaned 列表中，且名称不等于新的 nextAction，则关闭它
       if (openEntry != null) {
-          if (!cleaned.contains(openEntry['action']) && openEntry['action'] != nextAction) {
+          final openAction = _historyActionName(openEntry);
+          if (!cleaned.contains(openAction) && openAction != nextAction) {
+            if (canStartNewAction) {
               openEntry['endedAt'] = nowIso;
-              history.add(openEntry);
+            }
+            history.add(openEntry);
           }
       }
     } else {
       // 没有勾选完成，仅关闭当前的 openEntry (如果存在且动作变了)
       if (history.isNotEmpty && history.last['endedAt'] == null) {
-        if (history.last['action'] != nextAction) {
+        if (_historyActionName(history.last) != nextAction && canStartNewAction) {
           history.last['endedAt'] = nowIso;
         }
       }
@@ -135,9 +154,9 @@ class TaskService {
     if (nextAction.isNotEmpty) {
       // 检查最后一条是否已经是这个动作且在进行中
       bool isRunning = history.isNotEmpty && 
-                        history.last['action'] == nextAction && 
+                        _historyActionName(history.last) == nextAction && 
                         history.last['endedAt'] == null;
-      if (!isRunning) {
+      if (!isRunning && canStartNewAction) {
         history.add({
           'action': nextAction,
           'startedAt': nowIso,

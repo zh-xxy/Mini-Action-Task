@@ -311,22 +311,29 @@ class _ProfileTabState extends State<ProfileTab> {
     if (result != null && result.files.single.path != null) {
       try {
         final path = result.files.single.path!;
-        int count = 0;
+        CsvImportResult importResult;
         bool isTask = false;
-        if (path.contains('tasks_export')) {
+        final kind = await _dbService.detectCsvFileKind(path);
+        if (kind == CsvFileKind.tasks) {
           isTask = true;
-          count = await _dbService.importTasksFromCsv(path);
-        } else if (path.contains('logs_export')) {
-          count = await _dbService.importLogsFromCsv(path);
+          importResult = await _dbService.importTasksFromCsv(path);
+        } else if (kind == CsvFileKind.logs) {
+          importResult = await _dbService.importLogsFromCsv(path);
         } else {
-          isTask = true;
-          count = await _dbService.importTasksFromCsv(path);
+          throw Exception('无法识别 CSV 类型，请确认文件为 tasks_export 或 logs_export 导出的格式');
         }
         
         if (mounted) {
-          String message = '成功导入 $count 条记录';
+          String message = '成功导入 ${importResult.successCount} 条';
+          if (importResult.failureCount > 0) {
+            message += '，失败 ${importResult.failureCount} 条';
+          }
           if (isTask) {
             message += '。提示：记得再次点击导入以选择 logs 文件恢复统计数据。';
+          }
+          if (importResult.errors.isNotEmpty) {
+            final preview = importResult.errors.take(2).join('；');
+            message += '\n错误示例：$preview';
           }
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(message),

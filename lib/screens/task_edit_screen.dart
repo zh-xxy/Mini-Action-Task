@@ -179,7 +179,7 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
               initialValue: _nextAction,
               decoration: const InputDecoration(
                 labelText: '下一步动作',
-                hintText: '支持批量输入，每一行代表一个动作',
+                hintText: '支持批量输入，每一行代表一个动作，动作名称不要重复',
                 helperText: '',
                 border: OutlineInputBorder(),
               ),

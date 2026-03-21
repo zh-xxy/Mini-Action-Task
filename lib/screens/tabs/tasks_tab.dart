@@ -29,11 +29,13 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_handleTabSelection);
+    _tabController.animation?.addListener(_handleTabSelection);
   }
 
   @override
   void dispose() {
     _tabController.removeListener(_handleTabSelection);
+    _tabController.animation?.removeListener(_handleTabSelection);
     _tabController.dispose();
     super.dispose();
   }
@@ -42,6 +44,12 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     if (mounted) {
       setState(() {});
     }
+  }
+
+  int _getCurrentTabIndex() {
+    final animatedValue = _tabController.animation?.value;
+    if (animatedValue == null) return _tabController.index;
+    return animatedValue.round().clamp(0, _tabController.length - 1);
   }
 
   List<Task> _getFilteredTasks(List<Task> allTasks, String status) {
@@ -174,12 +182,38 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     if (result == null) return;
     final text = result.nextActionText.trim();
     if (text.isEmpty) return;
+    final existingActions = task.actionHistory
+        .map((e) => (e['action'] ?? '').toString().trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final nextAction = text
+        .split('\n')
+        .map((e) => e.trim())
+        .firstWhere((e) => e.isNotEmpty, orElse: () => '');
+    final duplicateActions = <String>{};
+    if (nextAction.isNotEmpty && existingActions.contains(nextAction)) {
+      duplicateActions.add(nextAction);
+    }
+    for (final action in result.completedActionsInOrder.map((e) => e.trim()).where((e) => e.isNotEmpty)) {
+      if (existingActions.contains(action)) {
+        duplicateActions.add(action);
+      }
+    }
     
     await Provider.of<TaskProvider>(context, listen: false).applyNextActionsBatch(
       task: task,
       nextActionText: text,
       completedActionsInOrder: result.completedActionsInOrder,
     );
+    if (!mounted) return;
+    if (duplicateActions.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('检测到重复动作，已跳过：${duplicateActions.join('、')}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _handleComplete(Task task) async {
@@ -333,6 +367,22 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     }
   }
 
+  Widget _buildTypeChip(String type) {
+    final label = type.trim().isEmpty ? '未分类' : type.trim();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.grey.withOpacity(0.45)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 10, color: Colors.black87, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
   List<Widget> _buildActionDurations(Task task, {required bool completed}) {
     if (task.actionHistory.isEmpty) {
       return [const Text('动作时长: 暂无记录', style: TextStyle(color: Colors.black54))];
@@ -416,7 +466,12 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Row(
+                children: [
+                  Expanded(child: Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                  _buildTypeChip(task.type),
+                ],
+              ),
               const SizedBox(height: 6),
               Text('起始时间: ${_formatTime(start)}'),
               Text('结束时间: ${_formatTime(end)}'),
@@ -452,7 +507,12 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    Row(
+                      children: [
+                        Expanded(child: Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                        _buildTypeChip(task.type),
+                      ],
+                    ),
                     const SizedBox(height: 6),
                     Text(currentTabStatus == 'frozen' ? '状态: 已冻结' : '状态: 已删除'),
                     Text('创建时间: $createdAt'),
@@ -494,7 +554,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     final tabs = ['待选', '进行中', '已完成', '冻结', '删除'];
     final statusKeys = ['todo', 'in_progress', 'done', 'frozen', 'deleted'];
-    final currentStatus = statusKeys[_tabController.index];
+    final currentStatus = statusKeys[_getCurrentTabIndex()];
 
     return Consumer<TaskProvider>(
       builder: (context, provider, child) {

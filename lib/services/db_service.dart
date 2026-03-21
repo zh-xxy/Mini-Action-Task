@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart';
@@ -6,6 +7,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/log_entry.dart';
 import '../models/task.dart';
+
+enum CsvFileKind { tasks, logs, unknown }
+
+class CsvImportResult {
+  final int successCount;
+  final int failureCount;
+  final List<String> errors;
+
+  const CsvImportResult({
+    required this.successCount,
+    required this.failureCount,
+    required this.errors,
+  });
+}
 
 class DBService {
   static final DBService _instance = DBService._internal();
@@ -202,14 +217,14 @@ class DBService {
     final rows = <List<dynamic>>[];
     rows.add([
       'id', 'title', 'status', 'type', 'priority', 'urgency', 'importance',
-      'due_in_days', 'energy_estimate', 'low_energy_ok', 'next_action', 'note',
+      'due_in_days', 'due_date', 'energy_estimate', 'low_energy_ok', 'next_action', 'note',
       'parent_id', 'created_at', 'last_progress_at', 'last_done_at', 'deleted_at', 'action_history'
     ]);
     for (final t in tasks) {
       final m = t.toMap();
       rows.add([
         m['id'], m['title'], m['status'], m['type'], m['priority'], m['urgency'], m['importance'],
-        m['due_in_days'], m['energy_estimate'], m['low_energy_ok'], m['next_action'], m['note'],
+        m['due_in_days'], m['due_date'], m['energy_estimate'], m['low_energy_ok'], m['next_action'], m['note'],
         m['parent_id'], m['created_at'], m['last_progress_at'], m['last_done_at'], m['deleted_at'], m['action_history']
       ]);
     }
@@ -220,16 +235,20 @@ class DBService {
     return file.path;
   }
 
-  Future<int> importTasksFromCsv(String filePath) async {
+  Future<CsvImportResult> importTasksFromCsv(String filePath) async {
     final file = File(filePath);
     final csvString = await file.readAsString();
     final List<List<dynamic>> rows = const CsvToListConverter().convert(csvString);
     
-    if (rows.isEmpty) return 0;
+    if (rows.isEmpty) {
+      return const CsvImportResult(successCount: 0, failureCount: 0, errors: []);
+    }
     
     // Assume first row is header
     final header = rows[0].map((e) => e.toString()).toList();
-    int count = 0;
+    int successCount = 0;
+    int failureCount = 0;
+    final errors = <String>[];
     
     for (int i = 1; i < rows.length; i++) {
       final row = rows[i];
@@ -241,13 +260,16 @@ class DBService {
       }
       try {
         final task = Task.fromMap(map);
+        task.actionHistory = _dedupeActionHistory(task.actionHistory);
         await insertTask(task);
-        count++;
+        successCount++;
       } catch (e) {
+        failureCount++;
+        errors.add('第 ${i + 1} 行: $e');
         print('Error importing row $i: $e');
       }
     }
-    return count;
+    return CsvImportResult(successCount: successCount, failureCount: failureCount, errors: errors);
   }
 
   Future<String> exportLogsCsv() async {
@@ -268,15 +290,19 @@ class DBService {
     return file.path;
   }
 
-  Future<int> importLogsFromCsv(String filePath) async {
+  Future<CsvImportResult> importLogsFromCsv(String filePath) async {
     final file = File(filePath);
     final csvString = await file.readAsString();
     final List<List<dynamic>> rows = const CsvToListConverter().convert(csvString);
     
-    if (rows.isEmpty) return 0;
+    if (rows.isEmpty) {
+      return const CsvImportResult(successCount: 0, failureCount: 0, errors: []);
+    }
     
     final header = rows[0].map((e) => e.toString()).toList();
-    int count = 0;
+    int successCount = 0;
+    int failureCount = 0;
+    final errors = <String>[];
     
     for (int i = 1; i < rows.length; i++) {
       final row = rows[i];
@@ -289,12 +315,72 @@ class DBService {
       try {
         final log = LogEntry.fromMap(map);
         await insertLog(log);
-        count++;
+        successCount++;
       } catch (e) {
+        failureCount++;
+        errors.add('第 ${i + 1} 行: $e');
         print('Error importing log row $i: $e');
       }
     }
-    return count;
+    return CsvImportResult(successCount: successCount, failureCount: failureCount, errors: errors);
+  }
+
+  Future<CsvFileKind> detectCsvFileKind(String filePath) async {
+    final file = File(filePath);
+    final csvString = await file.readAsString();
+    final rows = const CsvToListConverter().convert(csvString);
+    if (rows.isEmpty) return CsvFileKind.unknown;
+    final header = rows.first.map((e) => e.toString().trim().toLowerCase()).toSet();
+    if (header.contains('id') &&
+        header.contains('title') &&
+        header.contains('status') &&
+        header.contains('action_history')) {
+      return CsvFileKind.tasks;
+    }
+    if (header.contains('id') &&
+        header.contains('task_id') &&
+        header.contains('action') &&
+        header.contains('energy_value') &&
+        header.contains('created_at')) {
+      return CsvFileKind.logs;
+    }
+    return CsvFileKind.unknown;
+  }
+
+  List<Map<String, dynamic>> _dedupeActionHistory(List<Map<String, dynamic>> history) {
+    final byAction = <String, Map<String, dynamic>>{};
+    final ordered = <String>[];
+    final result = <Map<String, dynamic>>[];
+    for (final raw in history) {
+      final action = (raw['action'] ?? '').toString().trim();
+      final startedAt = raw['startedAt']?.toString();
+      final endedAtRaw = raw['endedAt']?.toString();
+      final endedAt = (endedAtRaw == null || endedAtRaw.isEmpty) ? null : endedAtRaw;
+      if (action.isEmpty) continue;
+      if (!byAction.containsKey(action)) {
+        byAction[action] = {
+          'action': action,
+          'startedAt': startedAt,
+          'endedAt': endedAt,
+        };
+        ordered.add(action);
+      } else {
+        final current = byAction[action]!;
+        final currentStart = current['startedAt']?.toString();
+        if ((currentStart == null || currentStart.isEmpty) && startedAt != null && startedAt.isNotEmpty) {
+          current['startedAt'] = startedAt;
+        }
+        final currentEndRaw = current['endedAt']?.toString();
+        final currentEnd = (currentEndRaw == null || currentEndRaw.isEmpty) ? null : currentEndRaw;
+        if (currentEnd == null && endedAt != null) {
+          current['endedAt'] = endedAt;
+        }
+      }
+    }
+    for (final action in ordered) {
+      result.add(byAction[action]!);
+    }
+    return result;
   }
 
   // --- Database Backup/Restore ---

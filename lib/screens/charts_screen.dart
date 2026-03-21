@@ -38,103 +38,19 @@ class _ChartsScreenState extends State<ChartsScreen> {
               _buildEnergyLineChart(provider.recentLogs),
               const SizedBox(height: 32),
 
-              const Text('完成动作热力图 (18周)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('完成动作热力图', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              _buildActionHeatmap(provider.allTasks),
+              _buildActionHeatmap(provider.allTasks, weeks: 21),
               const SizedBox(height: 32),
 
               const Text('近7天高效率时段', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               _buildEfficiencyHourChart(provider.allTasks),
               const SizedBox(height: 32),
-
-              const Text('精力状态波动 (最近7天)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              const Text('基于动作密度与能量产出计算的综合状态', style: TextStyle(fontSize: 12, color: Colors.black54)),
-              const SizedBox(height: 16),
-              _buildEnergyFlowChart(provider.allTasks),
-              const SizedBox(height: 32),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildEnergyFlowChart(List<Task> allTasks) {
-    final now = DateTime.now();
-    final cutoff = now.subtract(const Duration(days: 6)); 
-    const totalHours = 168; // 7天 * 24小时
-    
-    final hourlyScores = <int, double>{};
-    for (int i = 0; i < totalHours; i++) hourlyScores[i] = 0.0;
-
-    for (final task in allTasks) {
-      if (task.status == 'deleted') continue;
-      for (final item in task.actionHistory) {
-        final endedAt = item['endedAt']?.toString();
-        if (endedAt == null || endedAt.isEmpty) continue;
-        final dt = DateTime.tryParse(endedAt)?.toLocal();
-        if (dt == null || dt.isBefore(cutoff)) continue;
-        
-        final hoursAgo = now.difference(dt).inHours;
-        if (hoursAgo >= 0 && hoursAgo < totalHours) {
-          final index = (totalHours - 1) - hoursAgo; 
-          hourlyScores[index] = (hourlyScores[index] ?? 0) + 1.0;
-        }
-      }
-    }
-
-    final spots = <FlSpot>[];
-    double currentLevel = 0;
-    for (int i = 0; i < totalHours; i++) {
-      currentLevel = currentLevel * 0.9 + (hourlyScores[i] ?? 0) * 1.5;
-      spots.add(FlSpot(i.toDouble(), currentLevel));
-    }
-
-    return SizedBox(
-      height: 180,
-      child: LineChart(
-        LineChartData(
-          gridData: const FlGridData(show: true, drawVerticalLine: false),
-          titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  if (value.toInt() % 24 == 0) {
-                     final daysAgo = 6 - (value.toInt() ~/ 24);
-                     if (daysAgo < 0) return const SizedBox.shrink();
-                     return Text(daysAgo == 0 ? '今' : '$daysAgo天前', style: const TextStyle(fontSize: 10));
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: Colors.orangeAccent,
-              barWidth: 2,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  colors: [Colors.orange.withOpacity(0.4), Colors.orange.withOpacity(0.0)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -319,7 +235,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
     );
   }
 
-  Widget _buildActionHeatmap(List<Task> tasks, {int weeks = 18}) {
+  Widget _buildActionHeatmap(List<Task> tasks, {int weeks = 21}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final end = today.add(Duration(days: 6 - (today.weekday - 1)));
@@ -345,9 +261,31 @@ class _ChartsScreenState extends State<ChartsScreen> {
     for (int w = 0; w < weeks; w++) {
       final cells = <Widget>[];
       for (int d = 0; d < 7; d++) {
-        final key = DateFormat('yyyy-MM-dd').format(cursor);
+        final cellDate = cursor;
+        final key = DateFormat('yyyy-MM-dd').format(cellDate);
         final count = countsByDay[key] ?? 0;
-        cells.add(Container(width: 12, height: 12, margin: const EdgeInsets.all(2), decoration: BoxDecoration(color: _heatColor(count, maxCount), borderRadius: BorderRadius.circular(2))));
+        cells.add(
+          GestureDetector(
+            onTap: () {
+              final dateText = DateFormat('yyyy-MM-dd').format(cellDate);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$dateText：完成 $count 个动作'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
+            child: Container(
+              width: 12,
+              height: 12,
+              margin: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: _heatColor(count, maxCount),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        );
         cursor = cursor.add(const Duration(days: 1));
       }
       columns.add(Column(children: cells));
