@@ -71,24 +71,6 @@ Future<AdvanceDialogResult?> _showParseDialog({
               height: 500,
               child: Column(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade100),
-                    ),
-                    child: const Text(
-                      '一行代表一个动作，勾选表示该动作已完成。',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
                   Expanded(
                     child: ReorderableListView.builder(
                       itemCount: items.length,
@@ -210,4 +192,3 @@ Future<AdvanceDialogResult?> _showParseDialog({
     },
   );
 }
-

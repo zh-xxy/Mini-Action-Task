@@ -251,10 +251,10 @@ class TaskService {
 
   EnergyState getEnergyState(List<LogEntry> recentLogs) {
     double total = getRecentEnergyTotal(recentLogs);
-    // 反转逻辑：用户默认低能（红档）。只有完成任务多（进入心流），才变成绿档。
-    if (total < 3) return EnergyState.red;      // 最近没做啥任务，处于怠惰期（红档）
-    if (total <= 8) return EnergyState.yellow;  // 做了一些任务，稍微热身了（黄档）
-    return EnergyState.green;                   // 做了很多任务，势头正猛（绿档）
+    // 阈值调整为 5 和 12
+    if (total < 5) return EnergyState.red;      
+    if (total <= 12) return EnergyState.yellow;  
+    return EnergyState.green;
   }
 
   double getRecentEnergyTotal(List<LogEntry> recentLogs) {
