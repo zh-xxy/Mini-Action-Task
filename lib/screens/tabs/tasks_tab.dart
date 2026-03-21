@@ -45,9 +45,10 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   }
 
   void _handleTabSelection() {
-    if (!_tabController.indexIsChanging) return;
-    setState(() {});
-    _loadData();
+    // 无论是点击切换还是滑动切换，都触发 setState 以更新 AppBar 的 actions
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadData() async {
@@ -356,6 +357,16 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     return text.replaceFirst(RegExp(r'\.$'), '');
   }
 
+  Color _getImportanceColor(String imp) {
+    switch (imp) {
+      case '主线': return Colors.red;
+      case '支线': return Colors.orange;
+      case '副本': return Colors.purple;
+      case '习惯': return Colors.green;
+      default: return Colors.blue;
+    }
+  }
+
   List<Widget> _buildActionDurations(Task task, {required bool completed}) {
     if (task.actionHistory.isEmpty) {
       return [const Text('动作时长: 暂无记录', style: TextStyle(color: Colors.black54))];
@@ -401,6 +412,19 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               Row(
                 children: [
                   Expanded(child: Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                  // 任务类型标签
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _getImportanceColor(task.importance).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: _getImportanceColor(task.importance).withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      task.importance,
+                      style: TextStyle(fontSize: 10, color: _getImportanceColor(task.importance), fontWeight: FontWeight.bold),
+                    ),
+                  ),
                   IconButton(icon: const Icon(Icons.arrow_forward), onPressed: () => _handleAdvance(task)),
                 ],
               ),

@@ -493,7 +493,7 @@ class _ProfileTabState extends State<ProfileTab> {
           ListTile(
             leading: const Icon(Icons.settings_suggest),
             title: const Text('自动冻结设置'),
-            subtitle: Text('超过剩余天数 ${_autoFreezeOverdueDays} 天自动冻结（原因：超时）'),
+            subtitle: Text('任务超期 ${_autoFreezeOverdueDays} 天自动冻结'),
             onTap: _editAutoFreezeOverdueDays,
           ),
           const Divider(),
