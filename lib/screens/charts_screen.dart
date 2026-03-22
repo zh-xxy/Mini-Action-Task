@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
-import '../models/task.dart';
 import '../models/log_entry.dart';
-import '../services/db_service.dart';
 import '../services/task_provider.dart';
 import 'package:intl/intl.dart';
 
@@ -58,7 +56,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
 
               const Text('过去 7 天高效率时段', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              _buildEfficiencyHourChart(provider.allTasks),
+              _buildEfficiencyHourChart(provider.recentLogs),
               const SizedBox(height: 32),
             ],
           ),
@@ -127,28 +125,34 @@ class _ChartsScreenState extends State<ChartsScreen> {
     );
   }
 
-  Widget _buildEfficiencyHourChart(List<Task> tasks) {
+  int _logUnits(LogEntry log) {
+    final match = RegExp(r'units=(\d+)').firstMatch(log.note);
+    if (match == null) return 1;
+    final parsed = int.tryParse(match.group(1) ?? '');
+    if (parsed == null || parsed < 1) return 1;
+    return parsed;
+  }
+
+  Widget _buildEfficiencyHourChart(List<LogEntry> logs) {
     final now = DateTime.now();
     final cutoff = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
     
-    final doneTimes = <DateTime>[];
-    for (final task in tasks) {
-      if (task.status == 'deleted') continue;
-      for (final item in task.actionHistory) {
-        final endedAt = item['endedAt']?.toString();
-        if (endedAt == null || endedAt.isEmpty) continue;
-        final dt = DateTime.tryParse(endedAt)?.toLocal();
-        if (dt == null || dt.isBefore(cutoff)) continue;
-        doneTimes.add(dt);
-      }
-    }
-    doneTimes.sort();
+    final eventTimes = <DateTime>[];
     final countByHour = List<int>.filled(24, 0);
+    for (final log in logs) {
+      final action = log.action.toLowerCase();
+      if (action != 'done' && action != 'advance') continue;
+      final dt = log.createdAt.toLocal();
+      if (dt.isBefore(cutoff)) continue;
+      final units = _logUnits(log);
+      countByHour[dt.hour] += units;
+      eventTimes.add(dt);
+    }
+    eventTimes.sort();
     final densityByHour = List<double>.filled(24, 0);
     DateTime? prev;
-    for (final t in doneTimes) {
+    for (final t in eventTimes) {
       final hour = t.hour;
-      countByHour[hour] += 1;
       if (prev != null) {
         final gap = t.difference(prev).inMinutes.abs();
         if (gap <= 45) {
@@ -262,7 +266,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
       final day = DateTime(dt.year, dt.month, dt.day);
       if (day.isBefore(start) || day.isAfter(end)) continue;
       final key = DateFormat('yyyy-MM-dd').format(day);
-      countsByDay[key] = (countsByDay[key] ?? 0) + 1;
+      countsByDay[key] = (countsByDay[key] ?? 0) + _logUnits(log);
     }
 
     int maxCount = countsByDay.values.isEmpty ? 1 : countsByDay.values.reduce((a, b) => a > b ? a : b);

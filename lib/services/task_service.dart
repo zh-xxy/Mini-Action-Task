@@ -28,6 +28,17 @@ class TaskService {
     return text.replaceFirst(RegExp(r'\.$'), '');
   }
 
+  int _countActionLines(String text) {
+    return text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).length;
+  }
+
+  String _packLogNote({required int units, String note = ''}) {
+    final safeUnits = units < 1 ? 1 : units;
+    final cleanNote = note.trim();
+    if (cleanNote.isEmpty) return 'units=$safeUnits';
+    return 'units=$safeUnits|$cleanNote';
+  }
+
   String _normalizeActionName(String text) => text.trim();
 
   String _historyActionName(Map<String, dynamic> item) => _normalizeActionName((item['action'] ?? '').toString());
@@ -54,6 +65,7 @@ class TaskService {
     final hasActionInHistory = _containsActionName(history, nextAction);
     final isRunningSame = history.isNotEmpty && history.last['endedAt'] == null && _historyActionName(history.last) == nextAction;
     final canStartNewAction = nextAction.isNotEmpty && (!hasActionInHistory || isRunningSame);
+    int completionUnits = 0;
     // 如果最后一个动作还没结束，且动作内容一致，则不新增，只保持进行中
     if (history.isNotEmpty && history.last['endedAt'] == null) {
         if (_historyActionName(history.last) == nextAction) {
@@ -61,6 +73,7 @@ class TaskService {
         } else {
             if (canStartNewAction) {
               history.last['endedAt'] = now.toIso8601String();
+              completionUnits += 1;
               history.add({
                 'action': nextAction,
                 'startedAt': now.toIso8601String(),
@@ -84,6 +97,7 @@ class TaskService {
       taskId: task.id,
       action: 'advance',
       energyValue: 0,
+      note: _packLogNote(units: completionUnits),
       createdAt: now,
     );
     await _dbService.insertLog(log);
@@ -110,6 +124,7 @@ class TaskService {
     final history = task.actionHistory.map((e) => Map<String, dynamic>.from(e)).toList();
     final isRunningSame = history.isNotEmpty && history.last['endedAt'] == null && _historyActionName(history.last) == nextAction;
     final canStartNewAction = nextAction.isNotEmpty && (!_containsActionName(history, nextAction) || isRunningSame);
+    int completionUnits = 0;
     
     // 1. 处理已勾选完成的动作
     if (completedActionsInOrder.isNotEmpty) {
@@ -130,6 +145,7 @@ class TaskService {
               'startedAt': nowIso,
               'endedAt': nowIso,
             });
+            completionUnits += 1;
         }
       }
       
@@ -139,6 +155,7 @@ class TaskService {
           if (!cleaned.contains(openAction) && openAction != nextAction) {
             if (canStartNewAction) {
               openEntry['endedAt'] = nowIso;
+              completionUnits += 1;
             }
             history.add(openEntry);
           }
@@ -148,6 +165,7 @@ class TaskService {
       if (history.isNotEmpty && history.last['endedAt'] == null) {
         if (_historyActionName(history.last) != nextAction && canStartNewAction) {
           history.last['endedAt'] = nowIso;
+          completionUnits += 1;
         }
       }
     }
@@ -175,6 +193,7 @@ class TaskService {
       taskId: task.id,
       action: 'advance',
       energyValue: 0,
+      note: _packLogNote(units: completionUnits),
       createdAt: now,
     );
     await _dbService.insertLog(log);
@@ -189,9 +208,14 @@ class TaskService {
     task.energyEstimate = actualEnergy ?? task.energyEstimate;
     
     List<Map<String, dynamic>> history = List.from(task.actionHistory);
+    int completionUnits = _countActionLines(task.nextAction);
     if (history.isNotEmpty && history.last['endedAt'] == null) {
       history.last['endedAt'] = DateTime.now().toIso8601String();
+      if (completionUnits == 0) {
+        completionUnits = 1;
+      }
     }
+    if (completionUnits == 0) completionUnits = 1;
     task.actionHistory = history;
 
     await _dbService.updateTask(task);
@@ -203,7 +227,10 @@ class TaskService {
       taskId: task.id,
       action: 'done',
       energyValue: energyGained,
-      note: actualEnergy != null ? '实际耗能: ${_formatEnergy(actualEnergy)}' : '',
+      note: _packLogNote(
+        units: completionUnits,
+        note: actualEnergy != null ? '实际耗能: ${_formatEnergy(actualEnergy)}' : '',
+      ),
       createdAt: DateTime.now(),
     );
     await _dbService.insertLog(log);

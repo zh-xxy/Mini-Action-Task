@@ -135,11 +135,12 @@ class DBService {
   Future<void> hardDeleteTask(String taskId) async {
     if (kIsWeb) {
       _mockTasks.removeWhere((t) => t.id == taskId);
+      _mockLogs.removeWhere((l) => l.taskId == taskId);
       return;
     }
     final db = await database;
     await db.delete('tasks', where: 'id = ?', whereArgs: [taskId]);
-    await db.delete('logs', where: 'taskId = ?', whereArgs: [taskId]);
+    await db.delete('logs', where: 'task_id = ?', whereArgs: [taskId]);
   }
 
   Future<List<Task>> getAllTasks() async {
