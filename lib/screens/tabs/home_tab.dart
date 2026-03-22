@@ -181,6 +181,7 @@ class _HomeTabState extends State<HomeTab> {
                   )
                 else
                   ...recommendedTasks.map((t) => RecommendedTaskCard(
+                    key: ValueKey(t.id),
                     task: t,
                     onAdvance: () => _handleAdvance(t),
                     onComplete: () => _handleComplete(t),

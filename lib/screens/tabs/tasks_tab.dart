@@ -155,7 +155,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           return [
             Padding(
               padding: const EdgeInsets.only(bottom: 8, top: 8),
-              child: Text('类型：$importance（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              child: Text('$importance（${list.length}）', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
             ...list.map((task) => _buildTaskItem(task, 'done')),
           ];
@@ -419,6 +419,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     if (currentTabStatus == 'in_progress') {
       final durationDays = _getTotalActionDays(task);
       return Card(
+        key: ValueKey(task.id),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -446,13 +447,34 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               const SizedBox(height: 8),
               ..._buildActionDurations(task, completed: false),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
                 children: [
-                  TextButton(onPressed: () => _navigateToEdit(task), child: const Text('编辑')),
-                  const SizedBox(width: 8),
-                  TextButton(onPressed: () => _handleFreeze(task), child: const Text('冻结')),
-                  const SizedBox(width: 8),
-                  TextButton(onPressed: () => _handleComplete(task), child: const Text('完成')),
+                  TextButton.icon(
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('编辑'),
+                    onPressed: () => _navigateToEdit(task),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.ac_unit, size: 16),
+                    label: const Text('冻结'),
+                    onPressed: () => _handleFreeze(task),
+                  ),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('完成'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => _handleComplete(task),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                    label: const Text('删除', style: TextStyle(color: Colors.red)),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    onPressed: () => _handleDelete(task),
+                  ),
                 ],
               ),
             ],
@@ -464,6 +486,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
       final end = task.lastDoneAt ?? DateTime.now();
       final duration = _getTotalActionDays(task, endAt: end);
       return Card(
+        key: ValueKey(task.id),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -501,6 +524,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
       final deletedAt = task.deletedAt != null ? _formatTime(task.deletedAt!) : '未知';
       final reason = (task.frozenReason == null || task.frozenReason!.trim().isEmpty) ? '未填写' : task.frozenReason!;
       return Card(
+        key: ValueKey(task.id),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -545,7 +569,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('彻底删除'),
-                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。'),
+                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。删除后请重新打开 App 以刷新列表'),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
                           TextButton(
@@ -558,6 +582,14 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                     );
                     if (confirm == true) {
                       await Provider.of<TaskProvider>(context, listen: false).hardDeleteTask(task);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('已彻底删除，请重新打开 App 以刷新列表生效。'),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      }
                     }
                   },
                   tooltip: '彻底删除',
@@ -569,6 +601,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     }
 
     return TaskCard(
+      key: ValueKey(task.id),
       task: task,
       onEdit: () => _navigateToEdit(task),
       onDelete: () => _handleDelete(task),

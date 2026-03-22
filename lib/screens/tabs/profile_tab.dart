@@ -347,13 +347,14 @@ class _ProfileTabState extends State<ProfileTab> {
           if (isTask) {
             message += '。提示：记得再次点击导入以选择 logs 文件。';
           }
+          message += '\n【注意】请重新打开 App 以刷新并查看最新任务数据。';
           if (importResult.errors.isNotEmpty) {
             final preview = importResult.errors.take(2).join('；');
             message += '\n错误示例：$preview';
           }
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(message),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
           ));
         }
       } catch (e) {
