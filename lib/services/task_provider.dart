@@ -41,9 +41,6 @@ class TaskProvider extends ChangeNotifier {
     _allTasks = await _dbService.getAllTasks();
 
     // 如果是新用户，库里没任务，则插入 3 个引导任务
-    // 判断是否是新用户的逻辑修改为：不仅当前没任务，还要判断是不是已经有被彻底删除的记录
-    // 为了简化，我们可以检查 shared_preferences 里是否标记过已初始化，或者直接检查 logs 表是否有记录
-    // 这里我们检查如果有 logs 记录，说明用户不是第一次使用，只是把任务删光了
     if (_allTasks.isEmpty) {
       final hasLogs = await _dbService.getAllLogs().then((logs) => logs.isNotEmpty);
       if (!hasLogs) {
@@ -52,7 +49,7 @@ class TaskProvider extends ChangeNotifier {
       }
     }
 
-    _recentLogs = await _dbService.getRecentLogs(days: 3); // 从 7 天改为 3 天
+    _recentLogs = await _dbService.getAllLogs();
     await _syncWidgetRecommendation();
 
     _isLoading = false;

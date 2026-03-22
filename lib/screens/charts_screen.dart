@@ -53,7 +53,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
 
               const Text('完成动作热力图', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              _buildActionHeatmap(provider.allTasks, weeks: 21),
+              _buildActionHeatmap(provider.recentLogs, weeks: 21),
               const SizedBox(height: 32),
 
               const Text('过去 7 天高效率时段', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -248,23 +248,21 @@ class _ChartsScreenState extends State<ChartsScreen> {
     );
   }
 
-  Widget _buildActionHeatmap(List<Task> tasks, {int weeks = 21}) {
+  Widget _buildActionHeatmap(List<LogEntry> logs, {int weeks = 21}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final end = today.add(Duration(days: 6 - (today.weekday - 1)));
     final start = end.subtract(Duration(days: weeks * 7 - 1));
 
     final countsByDay = <String, int>{};
-    for (final t in tasks) {
-      if (t.status == 'deleted') continue;
-      for (final item in t.actionHistory) {
-        final endedAt = item['endedAt'];
-        if (endedAt == null) continue;
-        final dt = DateTime.tryParse(endedAt.toString())?.toLocal();
-        if (dt == null || dt.isBefore(start) || dt.isAfter(end)) continue;
-        final key = DateFormat('yyyy-MM-dd').format(dt);
-        countsByDay[key] = (countsByDay[key] ?? 0) + 1;
-      }
+    for (final log in logs) {
+      final action = log.action.toLowerCase();
+      if (action != 'done' && action != 'advance') continue;
+      final dt = log.createdAt.toLocal();
+      final day = DateTime(dt.year, dt.month, dt.day);
+      if (day.isBefore(start) || day.isAfter(end)) continue;
+      final key = DateFormat('yyyy-MM-dd').format(day);
+      countsByDay[key] = (countsByDay[key] ?? 0) + 1;
     }
 
     int maxCount = countsByDay.values.isEmpty ? 1 : countsByDay.values.reduce((a, b) => a > b ? a : b);
