@@ -569,7 +569,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('彻底删除'),
-                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。\n重新打开App后彻底消失。'),
+                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。\n删除后重新打开App后彻底消失。'),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
                           TextButton(
