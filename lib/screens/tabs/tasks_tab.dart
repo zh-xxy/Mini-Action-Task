@@ -569,7 +569,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('彻底删除'),
-                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。删除后请重新打开 App 以刷新列表'),
+                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。\n重新打开App后彻底消失。'),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
                           TextButton(
@@ -582,10 +582,10 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                     );
                     if (confirm == true) {
                       await Provider.of<TaskProvider>(context, listen: false).hardDeleteTask(task);
-                      if (context.mounted) {
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('已彻底删除，请重新打开 App 以刷新列表生效。'),
+                            content: Text('已彻底删除。由于系统机制限制，该页面未即时移除，但不影响您的记录。重新打开App后彻底消失。'),
                             duration: Duration(seconds: 3),
                           ),
                         );
