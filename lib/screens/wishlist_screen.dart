@@ -226,7 +226,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
               children: [
                 if (activeItems.isEmpty && redeemedItems.isEmpty)
                   const Center(
@@ -325,7 +325,18 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           ),
                         ),
                         subtitle: dateStr.isNotEmpty ? Text('实现于: $dateStr', style: const TextStyle(fontSize: 12, color: Colors.grey)) : null,
-                        trailing: const Icon(Icons.check_circle, color: Colors.green),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle, color: Colors.green),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                              onPressed: () => _deleteItem(item),
+                              padding: const EdgeInsets.only(left: 8),
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }),

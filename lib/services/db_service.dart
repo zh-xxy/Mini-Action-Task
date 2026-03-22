@@ -338,7 +338,7 @@ class DBService {
       return const CsvImportResult(successCount: 0, failureCount: 0, errors: []);
     }
     
-    final header = rows[0].map((e) => e.toString()).toList();
+    final header = rows[0].map((e) => e.toString().trim().toLowerCase()).toList();
     int successCount = 0;
     int failureCount = 0;
     final errors = <String>[];
@@ -397,6 +397,7 @@ class DBService {
       await prefs.setDouble('spent_exp', newSpentExp);
     }
     if (newItems.isNotEmpty) {
+      // 合并而不是覆盖，以防用户多次导入
       await prefs.setStringList('wishlist_items', newItems);
     }
     
