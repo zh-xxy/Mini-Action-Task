@@ -4,6 +4,7 @@ import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/log_entry.dart';
 import '../models/task.dart';
@@ -129,6 +130,16 @@ class DBService {
     task.status = 'deleted';
     task.deletedAt = DateTime.now();
     await updateTask(task);
+  }
+
+  Future<void> hardDeleteTask(String taskId) async {
+    if (kIsWeb) {
+      _mockTasks.removeWhere((t) => t.id == taskId);
+      return;
+    }
+    final db = await database;
+    await db.delete('tasks', where: 'id = ?', whereArgs: [taskId]);
+    await db.delete('logs', where: 'taskId = ?', whereArgs: [taskId]);
   }
 
   Future<List<Task>> getAllTasks() async {
@@ -283,6 +294,34 @@ class DBService {
       final m = l.toMap();
       rows.add([m['id'], m['task_id'], m['action'], m['energy_value'], m['note'], m['created_at']]);
     }
+    
+    // 附加愿望清单数据到日志文件末尾
+    final prefs = await SharedPreferences.getInstance();
+    final spentExp = prefs.getDouble('spent_exp') ?? 0.0;
+    final itemsJson = prefs.getStringList('wishlist_items') ?? [];
+    
+    // 使用特殊标记记录这是愿望清单数据
+    rows.add(['WISHLIST_MARKER', 'spent_exp', 'SPENT_EXP_RECORD', spentExp, '', '']);
+    
+    for (final jsonStr in itemsJson) {
+      try {
+        final map = jsonDecode(jsonStr);
+        final id = map['id']?.toString() ?? '';
+        final title = map['title']?.toString() ?? '';
+        final costExp = double.tryParse(map['costExp']?.toString() ?? '0') ?? 0.0;
+        final isRedeemed = map['isRedeemed']?.toString().toLowerCase() == 'true';
+        final redeemedAt = map['redeemedAt']?.toString() ?? '';
+        
+        // 编码为日志格式以确保兼容性
+        final noteData = jsonEncode({
+          'isRedeemed': isRedeemed,
+          'redeemedAt': redeemedAt
+        });
+        
+        rows.add(['WISHLIST_MARKER', id, 'WISHLIST_ITEM', costExp, noteData, title]);
+      } catch (_) {}
+    }
+
     final csv = const ListToCsvConverter().convert(rows);
     final dir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/logs_export_${DateTime.now().millisecondsSinceEpoch}.csv');
@@ -304,6 +343,10 @@ class DBService {
     int failureCount = 0;
     final errors = <String>[];
     
+    final prefs = await SharedPreferences.getInstance();
+    final newItems = <String>[];
+    double? newSpentExp;
+    
     for (int i = 1; i < rows.length; i++) {
       final row = rows[i];
       final Map<String, dynamic> map = {};
@@ -312,16 +355,51 @@ class DBService {
           map[header[j]] = row[j];
         }
       }
+      
       try {
-        final log = LogEntry.fromMap(map);
-        await insertLog(log);
-        successCount++;
+        // 检查是否为愿望清单特殊标记
+        if (map['id'] == 'WISHLIST_MARKER') {
+           final type = map['action'];
+           if (type == 'SPENT_EXP_RECORD') {
+              newSpentExp = double.tryParse(map['energy_value']?.toString() ?? '0') ?? 0.0;
+           } else if (type == 'WISHLIST_ITEM') {
+              final noteStr = map['note']?.toString() ?? '{}';
+              Map<String, dynamic> noteData = {};
+              try { noteData = jsonDecode(noteStr); } catch (_) {}
+              
+              final itemMap = {
+                'id': map['task_id']?.toString() ?? '',
+                'title': map['created_at']?.toString() ?? '', // 借用 created_at 存 title
+                'costExp': double.tryParse(map['energy_value']?.toString() ?? '0') ?? 0.0,
+                'isRedeemed': noteData['isRedeemed'] ?? false,
+              };
+              if (noteData['redeemedAt'] != null && noteData['redeemedAt'].toString().isNotEmpty) {
+                  itemMap['redeemedAt'] = noteData['redeemedAt'].toString();
+              }
+              newItems.add(jsonEncode(itemMap));
+           }
+           successCount++;
+        } else {
+           // 正常日志数据
+           final log = LogEntry.fromMap(map);
+           await insertLog(log);
+           successCount++;
+        }
       } catch (e) {
         failureCount++;
         errors.add('第 ${i + 1} 行: $e');
         print('Error importing log row $i: $e');
       }
     }
+    
+    // 如果解析到了愿望清单数据，则更新 SharedPreferences
+    if (newSpentExp != null) {
+      await prefs.setDouble('spent_exp', newSpentExp);
+    }
+    if (newItems.isNotEmpty) {
+      await prefs.setStringList('wishlist_items', newItems);
+    }
+    
     return CsvImportResult(successCount: successCount, failureCount: failureCount, errors: errors);
   }
 

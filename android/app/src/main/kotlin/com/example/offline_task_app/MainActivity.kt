@@ -47,6 +47,7 @@ class MainActivity : FlutterActivity() {
                     editor.putInt("task_count", 0)
                 }
                 editor.putInt("current_index", 0)
+                editor.putLong("lastActiveTime", System.currentTimeMillis())
                 editor.apply()
                 RecommendedTaskWidgetProvider.updateAll(this)
                 result.success(true)

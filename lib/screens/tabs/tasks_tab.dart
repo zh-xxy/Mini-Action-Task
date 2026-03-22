@@ -27,7 +27,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 5, vsync: this, initialIndex: 1);
     _tabController.addListener(_handleTabSelection);
     _tabController.animation?.addListener(_handleTabSelection);
   }
@@ -276,9 +276,6 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           )
         );
         if (recreate == true) {
-          // 这里简单处理，直接插入一个新任务。
-          // 实际上应该通过 TaskProvider 提供一个 insertTask 方法
-          // 这里为了演示暂且如此
           final newTask = task.copyWith(
             id: const Uuid().v4(),
             status: 'todo',
@@ -289,9 +286,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             actionHistory: [],
             dueInDays: 1, 
           );
-          // 在 Provider 中加入 insertTask
-          // 暂时刷新一下
-          await provider.refresh();
+          await provider.insertTask(newTask);
         }
       }
     }
@@ -530,18 +525,43 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.restore),
-                onPressed: () async {
-                    task.status = 'todo';
-                    task.frozenReason = null;
-                    task.frozenAt = null;
-                    task.deletedAt = null;
-                    // 这里由于在 Provider 中没写 update 方法，暂时用 refresh
-                    await Provider.of<TaskProvider>(context, listen: false).refresh();
-                },
-                tooltip: '恢复到待选',
-              ),
+              if (currentTabStatus == 'frozen')
+                IconButton(
+                  icon: const Icon(Icons.restore),
+                  onPressed: () async {
+                      task.status = 'todo';
+                      task.frozenReason = null;
+                      task.frozenAt = null;
+                      task.deletedAt = null;
+                      await Provider.of<TaskProvider>(context, listen: false).updateTask(task);
+                  },
+                  tooltip: '恢复到待选',
+                ),
+              if (currentTabStatus == 'deleted')
+                IconButton(
+                  icon: const Icon(Icons.delete_forever, color: Colors.red),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('彻底删除'),
+                        content: Text('确定要彻底删除任务 "${task.title}" 吗？此操作不可恢复。'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text('删除'),
+                          ),
+                        ],
+                      )
+                    );
+                    if (confirm == true) {
+                      await Provider.of<TaskProvider>(context, listen: false).hardDeleteTask(task);
+                    }
+                  },
+                  tooltip: '彻底删除',
+                ),
             ],
           ),
         ),
@@ -583,6 +603,19 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     );
   }
 
+  Map<String, int> _getImportanceCounts(List<Task> allTasks, String status) {
+    final counts = <String, int>{};
+    for (var opt in _importanceOptions) {
+      counts[opt] = 0;
+    }
+    for (var t in allTasks) {
+      if (t.status == status && counts.containsKey(t.importance)) {
+        counts[t.importance] = counts[t.importance]! + 1;
+      }
+    }
+    return counts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = ['待选', '进行中', '已完成', '冻结', '删除'];
@@ -601,10 +634,14 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                     _doneImportanceFilter = v == '全部' ? null : v;
                     _donePage = 0;
                   }),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: '全部', child: Text('全部')),
-                    ..._importanceOptions.map((e) => PopupMenuItem(value: e, child: Text(e))),
-                  ],
+                  itemBuilder: (context) {
+                    final counts = _getImportanceCounts(provider.allTasks, 'done');
+                    final total = counts.values.fold(0, (a, b) => a + b);
+                    return [
+                      PopupMenuItem(value: '全部', child: Text('全部 ($total)')),
+                      ..._importanceOptions.map((e) => PopupMenuItem(value: e, child: Text('$e (${counts[e]})'))),
+                    ];
+                  },
                   icon: const Icon(Icons.filter_alt),
                 ),
               if (currentStatus == 'done')
@@ -622,10 +659,14 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               if (currentStatus == 'deleted')
                 PopupMenuButton<String>(
                   onSelected: (v) => setState(() => _deletedImportanceFilter = v == '全部' ? null : v),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: '全部', child: Text('全部')),
-                    ..._importanceOptions.map((e) => PopupMenuItem(value: e, child: Text(e))),
-                  ],
+                  itemBuilder: (context) {
+                    final counts = _getImportanceCounts(provider.allTasks, 'deleted');
+                    final total = counts.values.fold(0, (a, b) => a + b);
+                    return [
+                      PopupMenuItem(value: '全部', child: Text('全部 ($total)')),
+                      ..._importanceOptions.map((e) => PopupMenuItem(value: e, child: Text('$e (${counts[e]})'))),
+                    ];
+                  },
                   icon: const Icon(Icons.filter_alt),
                 ),
             ],

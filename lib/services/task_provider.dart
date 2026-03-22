@@ -66,28 +66,28 @@ class TaskProvider extends ChangeNotifier {
         urgency: 3,
         importance: "主线",
         dueInDays: 7,
-        energyEstimate: 5,
+        energyEstimate: 1,
         lowEnergyOk: false,
         nextAction: "尝试点击右侧箭头推进动作\n查看统计页面的精力曲线",
         createdAt: now,
         actionHistory: [
           {'action': '了解 App 核心逻辑', 'startedAt': now.subtract(const Duration(minutes: 60)).toIso8601String(), 'endedAt': now.subtract(const Duration(minutes: 50)).toIso8601String()},
           {'action': '熟悉任务分级系统', 'startedAt': now.subtract(const Duration(minutes: 40)).toIso8601String(), 'endedAt': now.subtract(const Duration(minutes: 30)).toIso8601String()},
-          {'action': '开始第一次下一步行动', 'startedAt': now.subtract(const Duration(minutes: 20)).toIso8601String(), 'endedAt': null}
+          {'action': '开始第一次子动作', 'startedAt': now.subtract(const Duration(minutes: 20)).toIso8601String(), 'endedAt': null}
         ],
       ),
       Task(
         id: uuid.v4(),
-        title: "体验动作化管理",
-        status: "todo",
+        title: "任务动作拆分",
+        status: "in_progress",
         type: "练习",
         priority: 2,
         urgency: 1,
         importance: "支线",
         dueInDays: 3,
-        energyEstimate: 2,
+        energyEstimate: 1.5,
         lowEnergyOk: true,
-        nextAction: "拆解你的第一个下一步动作\n设定一个可执行的微小目标",
+        nextAction: "拆解你的第一个子动作\n设定一个可执行的微小目标",
         createdAt: now,
       ),
       Task(
@@ -102,6 +102,34 @@ class TaskProvider extends ChangeNotifier {
         energyEstimate: 1,
         lowEnergyOk: true,
         nextAction: "查看统计页面的精力曲线\n记录今日的心情",
+        createdAt: now,
+      ),
+      Task(
+        id: uuid.v4(),
+        title: "安装桌面小组件",
+        status: "in_progress",
+        type: "任务说明",
+        priority: 2,
+        urgency: 2,
+        importance: "支线",
+        dueInDays: 3,
+        energyEstimate: 1,
+        lowEnergyOk: true,
+        nextAction: "回到手机桌面\n长按屏幕添加小组件\n找到并添加 Mini Action Task 小组件",
+        createdAt: now,
+      ),
+      Task(
+        id: uuid.v4(),
+        title: "早睡",
+        status: "todo",
+        type: "习惯",
+        priority: 1,
+        urgency: 1,
+        importance: "习惯",
+        dueInDays: 1,
+        energyEstimate: 1,
+        lowEnergyOk: true,
+        nextAction: "到点躺床闭眼三分钟",
         createdAt: now,
       ),
     ];
@@ -147,7 +175,22 @@ class TaskProvider extends ChangeNotifier {
     await _taskService.deleteTask(task);
     await loadData();
   }
+
+  Future<void> hardDeleteTask(Task task) async {
+    await _taskService.hardDeleteTask(task);
+    await loadData();
+  }
   
+  Future<void> insertTask(Task task) async {
+    await _dbService.insertTask(task);
+    await loadData();
+  }
+
+  Future<void> updateTask(Task task) async {
+    await _dbService.updateTask(task);
+    await loadData();
+  }
+
   List<Task> getRecommendedTasks() {
     return _taskService.getRecommendedTasks(activeTasks, _recentLogs, offset: _recommendationOffset);
   }

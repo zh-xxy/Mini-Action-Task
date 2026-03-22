@@ -3,6 +3,8 @@ import '../models/task.dart';
 import '../models/log_entry.dart';
 import 'db_service.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 enum EnergyState { green, yellow, red }
 
 class TaskService {
@@ -194,11 +196,13 @@ class TaskService {
 
     await _dbService.updateTask(task);
 
+    final energyGained = actualEnergy ?? task.energyEstimate;
+
     final log = LogEntry(
       id: _uuid.v4(),
       taskId: task.id,
       action: 'done',
-      energyValue: actualEnergy ?? task.energyEstimate,
+      energyValue: energyGained,
       note: actualEnergy != null ? '实际耗能: ${_formatEnergy(actualEnergy)}' : '',
       createdAt: DateTime.now(),
     );
@@ -231,6 +235,10 @@ class TaskService {
       createdAt: DateTime.now(),
     );
     await _dbService.insertLog(log);
+  }
+
+  Future<void> hardDeleteTask(Task task) async {
+    await _dbService.hardDeleteTask(task.id);
   }
 
   Future<int> autoFreezeOverdueTasks({int? overdueDays}) async {

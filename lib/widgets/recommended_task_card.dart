@@ -54,7 +54,7 @@ class RecommendedTaskCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _firstNonEmptyLine(task.nextAction).isEmpty ? "补一个下一步动作" : _firstNonEmptyLine(task.nextAction),
+                        _firstNonEmptyLine(task.nextAction).isEmpty ? "补一个子动作" : _firstNonEmptyLine(task.nextAction),
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),

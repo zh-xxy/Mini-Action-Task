@@ -73,7 +73,7 @@ class TaskCard extends StatelessWidget {
                     children: [
                       Text(
                         showNextAction
-                            ? (task.nextAction.isEmpty ? '无下一步动作' : task.nextAction)
+                            ? (task.nextAction.isEmpty ? '无子动作' : task.nextAction)
                             : task.title,
                         style: TextStyle(
                           fontSize: 18,

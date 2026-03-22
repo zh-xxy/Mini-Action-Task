@@ -65,10 +65,12 @@ Future<AdvanceDialogResult?> _showParseDialog({
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('编辑下一步动作'),
+            title: const Text('编辑子动作'),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             content: SizedBox(
-              width: 640,
-              height: 500,
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.height * 0.7,
               child: Column(
                 children: [
                   Expanded(
@@ -89,20 +91,22 @@ Future<AdvanceDialogResult?> _showParseDialog({
                           child: Row(
                             children: [
                               Transform.scale(
-                                scale: 0.85,
+                                scale: 0.7,
                                 child: Checkbox(
                                   value: item.done,
                                   visualDensity: VisualDensity.compact,
                                   onChanged: (v) => setState(() => item.done = v ?? false),
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 2),
                               Expanded(
                                 child: TextField(
                                   controller: item.controller,
+                                  style: const TextStyle(fontSize: 13),
                                   decoration: const InputDecoration(
                                     border: OutlineInputBorder(),
                                     isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                   ),
                                 ),
                               ),
@@ -122,15 +126,16 @@ Future<AdvanceDialogResult?> _showParseDialog({
                                     }
                                   });
                                 },
-                                icon: const Icon(Icons.delete_outline, size: 18),
+                                icon: const Icon(Icons.delete_outline, size: 20),
                                 visualDensity: VisualDensity.compact,
-                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                padding: const EdgeInsets.all(4),
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                               ),
                               ReorderableDragStartListener(
                                 index: index,
                                 child: const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 4),
-                                  child: Icon(Icons.drag_handle, size: 16),
+                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                  child: Icon(Icons.drag_handle, size: 20),
                                 ),
                               ),
                             ],

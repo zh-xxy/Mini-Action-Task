@@ -30,7 +30,19 @@ class RecommendedTaskWidgetProvider : AppWidgetProvider() {
     ) {
         val sp = context.getSharedPreferences("mini_action_task_widget", Context.MODE_PRIVATE)
         val count = sp.getInt("task_count", 0)
-        val currentIndex = sp.getInt("current_index", 0)
+        var currentIndex = sp.getInt("current_index", 0)
+        
+        val lastActiveTime = sp.getLong("lastActiveTime", System.currentTimeMillis())
+        if (System.currentTimeMillis() - lastActiveTime > 10L * 60 * 60 * 1000) {
+            if (count > 0) {
+                currentIndex = (currentIndex + 1) % count
+                sp.edit()
+                    .putInt("current_index", currentIndex)
+                    .putLong("lastActiveTime", System.currentTimeMillis())
+                    .apply()
+            }
+        }
+        
         val title = if (count > 0) sp.getString("title_$currentIndex", "暂无推荐任务") ?: "暂无推荐任务" else sp.getString("title", "暂无推荐任务") ?: "暂无推荐任务"
         val nextAction = if (count > 0) sp.getString("nextAction_$currentIndex", "先打开应用获取推荐") ?: "先打开应用获取推荐" else sp.getString("nextAction", "先打开应用获取推荐") ?: "先打开应用获取推荐"
         

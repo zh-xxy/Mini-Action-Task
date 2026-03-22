@@ -163,48 +163,56 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
             TextFormField(
               initialValue: _title,
+              style: const TextStyle(fontSize: 14),
               decoration: const InputDecoration(
                 labelText: '任务标题',
                 border: OutlineInputBorder(),
+                isDense: true,
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? '请输入标题' : null,
               onSaved: (v) => _title = (v ?? '').trim(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             TextFormField(
               initialValue: _nextAction,
+              style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
-                labelText: '下一步动作',
-                hintText: '支持批量输入，每一行代表一个动作，动作名称不要重复',
-                helperText: '',
+                labelText: '子动作',
+                hintText: '支持批量输入，每一行代表一个动作\n动作不要重复',
                 border: OutlineInputBorder(),
+                isDense: true,
               ),
               keyboardType: TextInputType.multiline,
-              minLines: 4,
-              maxLines: 7,
+              minLines: 5,
+              maxLines: 8,
               onSaved: (v) => _nextAction = (v ?? '').trim(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             TextFormField(
               initialValue: _note,
+              style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
                 labelText: '备注',
                 border: OutlineInputBorder(),
+                isDense: true,
               ),
               keyboardType: TextInputType.multiline,
-              maxLines: 6,
+              minLines: 5,
+              maxLines: 8,
               onSaved: (v) => _note = (v ?? '').trim(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _importance,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
               decoration: const InputDecoration(
                 labelText: '类型',
                 border: OutlineInputBorder(),
+                isDense: true,
               ),
               items: ['日常', '习惯', '支线', '副本', '主线']
                   .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -218,31 +226,34 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
               },
               onSaved: (v) => _importance = v ?? '日常',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
-                    // Update key to force rebuild when _priority changes programmatically
                     key: ValueKey('priority_$_priority'),
                     initialValue: _priority.toString(),
+                    style: const TextStyle(fontSize: 14),
                     decoration: const InputDecoration(
                       labelText: '优先级',
                       border: OutlineInputBorder(),
+                      isDense: true,
                     ),
                     keyboardType: TextInputType.number,
                     validator: (v) => int.tryParse(v ?? '') == null ? '请输入整数' : null,
                     onSaved: (v) => _priority = int.tryParse(v ?? '') ?? 0,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
                     key: ValueKey('urgency_$_urgency'),
                     initialValue: _urgency.toString(),
+                    style: const TextStyle(fontSize: 14),
                     decoration: const InputDecoration(
                       labelText: '紧急度',
                       border: OutlineInputBorder(),
+                      isDense: true,
                     ),
                     keyboardType: TextInputType.number,
                     validator: (v) => int.tryParse(v ?? '') == null ? '请输入整数' : null,
@@ -258,9 +269,11 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
                   child: TextFormField(
                     key: ValueKey('due_$_dueInDays'),
                     initialValue: widget.task == null ? '' : _dueInDays.toString(),
+                    style: const TextStyle(fontSize: 14),
                     decoration: const InputDecoration(
                       labelText: '剩余天数',
                       border: OutlineInputBorder(),
+                      isDense: true,
                     ),
                     keyboardType: TextInputType.number,
                     validator: (v) {
@@ -275,14 +288,16 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
                     key: ValueKey('energy_$_energyEstimate'),
                     initialValue: widget.task == null ? '' : _energyEstimate.toString(),
+                    style: const TextStyle(fontSize: 14),
                     decoration: const InputDecoration(
                       labelText: '预估能量',
                       border: OutlineInputBorder(),
+                      isDense: true,
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     validator: (v) {
@@ -299,15 +314,16 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             SwitchListTile(
-              title: const Text('低能量可做'),
+              title: const Text('低能量可做', style: TextStyle(fontSize: 14)),
               value: _lowEnergyOk,
               onChanged: (v) => setState(() => _lowEnergyOk = v),
               contentPadding: EdgeInsets.zero,
+              dense: true,
             ),
             // Removed Status dropdown field from here
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             SizedBox(
               height: 48,
               child: ElevatedButton(

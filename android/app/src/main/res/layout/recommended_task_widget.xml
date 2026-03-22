@@ -17,23 +17,23 @@
         android:textColor="@android:color/black" />
 
     <TextView
-        android:id="@+id/widgetTaskTitle"
+        android:id="@+id/widgetTaskAction"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginTop="8dp"
         android:gravity="center_vertical"
-        android:text="暂无推荐任务"
+        android:text="先打开应用获取推荐"
         android:textStyle="bold"
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textColor="@android:color/black" />
 
     <TextView
-        android:id="@+id/widgetTaskAction"
+        android:id="@+id/widgetTaskTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="先打开应用获取推荐"
+        android:text="暂无推荐任务"
         android:textSize="13sp"
         android:textColor="#666666" />
 

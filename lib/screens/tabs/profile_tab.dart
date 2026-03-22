@@ -6,6 +6,8 @@ import 'package:mini_action_task/services/db_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:mini_action_task/services/notification_service.dart';
+
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
 
@@ -16,7 +18,7 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
   final DBService _dbService = DBService();
   static final Uri _releaseUri = Uri.parse('https://github.com/zh-xxy/Mini-Action-Task/releases');
-  String _version = '1.0.5';
+  String _version = '1.0.6';
   String _name = 'User';
   String _signature = '点击编辑签名';
   String _avatarPath = '';
@@ -57,7 +59,7 @@ class _ProfileTabState extends State<ProfileTab> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _version = '1.0.5';
+        _version = '1.0.6';
       });
     }
   }
@@ -307,8 +309,8 @@ class _ProfileTabState extends State<ProfileTab> {
     final proceed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('导入数据说明'),
-        content: const Text('为了完整恢复您的数据（包括任务列表、历史统计、经验等级等），建议先后导入 "tasks_export" 和 "logs_export" 两个 CSV 文件。\n\n点击“继续”选择其中一个文件进行导入。'),
+        title: const Text('导入数据'),
+        content: const Text('为了完整恢复您的数据（包括任务列表、历史统计、经验等级、愿望清单等），建议先后导入 "tasks_export" 和 "logs_export" 两个 CSV 文件。\n\n点击“继续”选择其中一个文件进行导入。'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('继续选择文件')),
@@ -334,7 +336,7 @@ class _ProfileTabState extends State<ProfileTab> {
         } else if (kind == CsvFileKind.logs) {
           importResult = await _dbService.importLogsFromCsv(path);
         } else {
-          throw Exception('无法识别 CSV 类型，请确认文件为 tasks_export 或 logs_export 导出的格式');
+          throw Exception('无法识别 CSV 类型，请确认文件为正确的导出格式');
         }
         
         if (mounted) {
@@ -343,7 +345,7 @@ class _ProfileTabState extends State<ProfileTab> {
             message += '，失败 ${importResult.failureCount} 条';
           }
           if (isTask) {
-            message += '。提示：记得再次点击导入以选择 logs 文件恢复统计数据。';
+            message += '。提示：记得再次点击导入以选择 logs 文件。';
           }
           if (importResult.errors.isNotEmpty) {
             final preview = importResult.errors.take(2).join('；');
@@ -369,7 +371,7 @@ class _ProfileTabState extends State<ProfileTab> {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('导出成功'),
-            content: Text('已导出:\nTasks: $taskPath\nLogs: $logPath\n\n【重要提示】\n备份文件默认保存在应用私有目录下。请务必前往文件管理器将这两个.csv文件复制/移动到其他目录，否则卸载app后备份文件也会一并丢失！'),
+            content: Text('已导出:\nTasks: $taskPath\nLogs (包含愿望清单): $logPath\n\n【重要提示】\n备份文件默认保存在应用私有目录下。请务必前往文件管理器将这两个.csv文件复制/移动到其他目录，否则卸载app后备份文件也会一并丢失！'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -543,6 +545,17 @@ class _ProfileTabState extends State<ProfileTab> {
             leading: const Icon(Icons.info),
             title: const Text('App 版本'),
             subtitle: Text(_version),
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active),
+            title: const Text('测试提醒通知'),
+            subtitle: const Text('点击发送一条测试通知'),
+            onTap: () {
+              NotificationService().testNotification();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已发送测试通知，请留意顶部状态栏')),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.system_update_alt),

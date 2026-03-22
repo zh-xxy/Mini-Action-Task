@@ -7,6 +7,8 @@ import '../services/db_service.dart';
 import '../services/task_provider.dart';
 import 'package:intl/intl.dart';
 
+import 'wishlist_screen.dart';
+
 class ChartsScreen extends StatefulWidget {
   const ChartsScreen({super.key});
 
@@ -29,7 +31,18 @@ class _ChartsScreenState extends State<ChartsScreen> {
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('数据统计')),
+          appBar: AppBar(
+            title: const Text('数据统计'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.card_giftcard),
+                tooltip: '愿望清单',
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const WishlistScreen()));
+                },
+              ),
+            ],
+          ),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -43,7 +56,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
               _buildActionHeatmap(provider.allTasks, weeks: 21),
               const SizedBox(height: 32),
 
-              const Text('近7天高效率时段', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('过去 7 天高效率时段', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               _buildEfficiencyHourChart(provider.allTasks),
               const SizedBox(height: 32),
