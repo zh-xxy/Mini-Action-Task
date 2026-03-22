@@ -173,7 +173,7 @@ class TaskService {
     // 2. 开启新的进行中动作 (Next Action)
     if (nextAction.isNotEmpty) {
       // 检查最后一条是否已经是这个动作且在进行中
-      bool isRunning = history.isNotEmpty && 
+      bool isRunning = history.isNotEmpty &&
                         _historyActionName(history.last) == nextAction && 
                         history.last['endedAt'] == null;
       if (!isRunning && canStartNewAction) {
@@ -306,7 +306,7 @@ class TaskService {
   EnergyState getEnergyState(List<LogEntry> recentLogs) {
     double total = getRecentEnergyTotal(recentLogs);
     // 阈值调整为 5 和 12
-    if (total < 5) return EnergyState.red;      
+    if (total < 5) return EnergyState.red;
     if (total <= 12) return EnergyState.yellow;  
     return EnergyState.green;
   }

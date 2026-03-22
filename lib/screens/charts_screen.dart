@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../models/log_entry.dart';
+import '../models/task.dart';
 import '../services/task_provider.dart';
 import 'package:intl/intl.dart';
 
@@ -15,7 +16,7 @@ class ChartsScreen extends StatefulWidget {
 }
 
 class _ChartsScreenState extends State<ChartsScreen> {
-  static const List<String> _importanceOptions = ['日常', '习惯', '支线', '副本', '主线'];
+  static const List<String> _importanceOptions = ['主线', '支线', '副本', '习惯', '日常'];
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +48,11 @@ class _ChartsScreenState extends State<ChartsScreen> {
               const Text('过去 7 天完成任务能量', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               _buildEnergyLineChart(provider.recentLogs),
+              const SizedBox(height: 32),
+
+              const Text('过去 4 周完成任务数', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildWeeklyTaskGroupedBarChart(provider.recentLogs, provider.allTasks),
               const SizedBox(height: 32),
 
               const Text('完成动作热力图', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -131,6 +137,148 @@ class _ChartsScreenState extends State<ChartsScreen> {
     final parsed = int.tryParse(match.group(1) ?? '');
     if (parsed == null || parsed < 1) return 1;
     return parsed;
+  }
+
+  Widget _buildWeeklyTaskGroupedBarChart(List<LogEntry> logs, List<Task> tasks) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final currentWeekStart = _weekStartSunday(today);
+    final weekStarts = List<DateTime>.generate(4, (index) => currentWeekStart.subtract(Duration(days: (3 - index) * 7)));
+    final weekKeys = weekStarts.map((d) => DateFormat('yyyy-MM-dd').format(d)).toList();
+    final weeklyCounts = <String, Map<String, int>>{
+      for (final key in weekKeys) key: {for (final option in _importanceOptions) option: 0}
+    };
+    final importanceByTaskId = <String, String>{for (final task in tasks) task.id: task.importance};
+
+    for (final log in logs) {
+      if (log.action.toLowerCase() != 'done') continue;
+      final dt = log.createdAt.toLocal();
+      final day = DateTime(dt.year, dt.month, dt.day);
+      final weekStart = _weekStartSunday(day);
+      final weekKey = DateFormat('yyyy-MM-dd').format(weekStart);
+      if (!weeklyCounts.containsKey(weekKey)) continue;
+      final importance = importanceByTaskId[log.taskId];
+      if (importance == null || !_importanceOptions.contains(importance)) continue;
+      weeklyCounts[weekKey]![importance] = (weeklyCounts[weekKey]![importance] ?? 0) + 1;
+    }
+
+    final barGroups = <BarChartGroupData>[];
+    double maxY = 1;
+    for (int i = 0; i < weekStarts.length; i++) {
+      final weekKey = weekKeys[i];
+      final rods = <BarChartRodData>[];
+      for (int j = 0; j < _importanceOptions.length; j++) {
+        final importance = _importanceOptions[j];
+        final count = (weeklyCounts[weekKey]![importance] ?? 0).toDouble();
+        if (count > maxY) maxY = count;
+        rods.add(BarChartRodData(
+          toY: count,
+          width: 7,
+          borderRadius: BorderRadius.circular(2),
+          color: _importanceBarColor(importance),
+        ));
+      }
+      barGroups.add(BarChartGroupData(x: i, barRods: rods, barsSpace: 3));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 220,
+          child: BarChart(
+            BarChartData(
+              minY: 0,
+              maxY: maxY < 4 ? 4 : maxY + 1,
+              barGroups: barGroups,
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 24,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      if (value % 1 != 0) return const SizedBox.shrink();
+                      return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
+                    },
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      final index = value.toInt();
+                      if (index < 0 || index >= weekStarts.length) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(_formatYearWeek(weekStarts[index]), style: const TextStyle(fontSize: 10)),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: _importanceOptions
+              .map(
+                (importance) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(width: 10, height: 10, color: _importanceBarColor(importance)),
+                    const SizedBox(width: 4),
+                    Text(importance, style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  DateTime _weekStartSunday(DateTime date) {
+    final d = DateTime(date.year, date.month, date.day);
+    final offset = d.weekday % 7;
+    return d.subtract(Duration(days: offset));
+  }
+
+  String _formatYearWeek(DateTime date) {
+    final year = date.year;
+    final week = _weekNumberSundayFirst(date);
+    return '$year${week.toString().padLeft(2, '0')}';
+  }
+
+  int _weekNumberSundayFirst(DateTime date) {
+    final weekStart = _weekStartSunday(date);
+    final jan1 = DateTime(date.year, 1, 1);
+    final firstWeekStart = _weekStartSunday(jan1);
+    return weekStart.difference(firstWeekStart).inDays ~/ 7 + 1;
+  }
+
+  Color _importanceBarColor(String importance) {
+    switch (importance) {
+      case '主线':
+        return Colors.red.shade400;
+      case '支线':
+        return Colors.orange.shade400;
+      case '副本':
+        return Colors.blue.shade400;
+      case '习惯':
+        return Colors.green.shade400;
+      case '日常':
+      default:
+        return Colors.grey.shade500;
+    }
   }
 
   Widget _buildEfficiencyHourChart(List<LogEntry> logs) {
