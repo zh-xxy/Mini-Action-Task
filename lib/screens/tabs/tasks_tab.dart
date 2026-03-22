@@ -123,6 +123,27 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     return days.toStringAsFixed(2);
   }
 
+  String _buildHabitNextActionTemplate(Task task) {
+    final ordered = <String>[];
+    final seen = <String>{};
+
+    for (final raw in task.nextAction.split('\n')) {
+      final line = raw.trim();
+      if (line.isEmpty || seen.contains(line)) continue;
+      seen.add(line);
+      ordered.add(line);
+    }
+
+    for (final item in task.actionHistory) {
+      final action = (item['action'] ?? '').toString().trim();
+      if (action.isEmpty || seen.contains(action)) continue;
+      seen.add(action);
+      ordered.add(action);
+    }
+
+    return ordered.join('\n');
+  }
+
   Widget _buildDoneTab(List<Task> allTasks) {
     final allFiltered = _getFilteredTasks(allTasks, 'done');
     if (allFiltered.isEmpty) {
@@ -276,10 +297,11 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           )
         );
         if (recreate == true) {
+          final templateNextAction = _buildHabitNextActionTemplate(task);
           final newTask = task.copyWith(
             id: const Uuid().v4(),
             status: 'todo',
-            nextAction: '',
+            nextAction: templateNextAction,
             createdAt: DateTime.now(),
             lastProgressAt: null,
             lastDoneAt: null,
